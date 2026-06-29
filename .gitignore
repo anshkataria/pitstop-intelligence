@@ -1,0 +1,47 @@
+# Java / Spring Boot
+*.class
+*.jar
+*.war
+*.ear
+target/
+.mvn/
+*.iml
+.idea/
+*.iws
+*.ipr
+hs_err_pid*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+mlruns/
+*.ipynb_checkpoints
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+*.log
+npm-debug.log*
+
+# Docker
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+*.swp
+*.swo
