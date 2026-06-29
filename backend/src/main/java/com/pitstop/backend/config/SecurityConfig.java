@@ -19,7 +19,7 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/v1/health", "/actuator/**").permitAll()
+                .requestMatchers("/v1/**", "/actuator/**").permitAll()
                 .anyRequest().authenticated()
             );
 
