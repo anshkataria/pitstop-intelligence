@@ -2,7 +2,6 @@ package com.pitstop.backend.dto;
 
 import lombok.Builder;
 import lombok.Data;
-import lombok.Value;
 
 import java.util.List;
 

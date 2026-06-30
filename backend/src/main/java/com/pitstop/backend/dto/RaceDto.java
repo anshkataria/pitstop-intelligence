@@ -3,7 +3,6 @@ package com.pitstop.backend.dto;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
 import lombok.Data;
-import lombok.Value;
 
 import java.time.LocalDate;
 
