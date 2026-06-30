@@ -47,11 +47,31 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      ML_SERVICE_URL: http://ml-service:8000
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  ingestion:
+    build:
+      context: ./ingestion
+      dockerfile: Dockerfile
+    container_name: pitstop-ingestion
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      ERGAST_BASE_URL: https://api.jolpi.ca/ergast/f1
+      SEASONS_TO_FETCH: ${SEASONS_TO_FETCH:-2023,2024}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - ingestion
 
 volumes:
   postgres_data:
