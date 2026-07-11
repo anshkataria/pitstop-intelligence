@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 94" role="img" aria-labelledby="title">
+  <title id="title">Pitstop Intelligence</title>
+  <g fill="none" stroke="#e21f2f" stroke-linejoin="round">
+    <path d="M8 13h65c22 0 36 14 36 32S95 77 73 77H38v13H8V57h65c8 0 13-5 13-12s-5-12-13-12H8Z" stroke-width="10"/>
+    <path d="M8 34h63c8 0 13 4 13 11s-5 11-13 11H8" stroke-width="7"/>
+  </g>
+  <text x="132" y="54" fill="#101112" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="700" letter-spacing="8">PITSTOP</text>
+  <text x="134" y="82" fill="#34363a" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="600" letter-spacing="7.4">INTELLIGENCE</text>
+</svg>
