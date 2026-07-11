@@ -18,6 +18,8 @@ public interface RaceRepository extends JpaRepository<Race, Long> {
 
     Optional<Race> findBySeasonYearAndRound(Integer year, Integer round);
 
+    Optional<Race> findTopBySeasonYearOrderByRoundDesc(Integer year);
+
     @Query("SELECT r FROM Race r JOIN FETCH r.season WHERE r.season.year = :year ORDER BY r.round ASC")
     List<Race> findBySeasonYearWithSeason(@Param("year") Integer year);
 

@@ -2,7 +2,10 @@ package com.pitstop.backend.controller;
 
 import com.pitstop.backend.dto.DriverDto;
 import com.pitstop.backend.dto.PagedResponse;
+import com.pitstop.backend.dto.RaceResultDto;
+import com.pitstop.backend.dto.DriverSeasonStatsDto;
 import com.pitstop.backend.service.DriverService;
+import com.pitstop.backend.service.RaceResultService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 public class DriverController {
 
     private final DriverService driverService;
+    private final RaceResultService raceResultService;
 
     @GetMapping
     public ResponseEntity<PagedResponse<DriverDto>> getAllDrivers(
@@ -34,5 +38,17 @@ public class DriverController {
     @GetMapping("/ref/{driverRef}")
     public ResponseEntity<DriverDto> getDriverByRef(@PathVariable String driverRef) {
         return ResponseEntity.ok(driverService.findByRef(driverRef));
+    }
+
+    @GetMapping("/{id}/results")
+    public ResponseEntity<java.util.List<RaceResultDto>> getDriverResults(
+            @PathVariable Long id, @RequestParam Integer season) {
+        return ResponseEntity.ok(raceResultService.findDriverResults(id, season));
+    }
+
+    @GetMapping("/{id}/stats")
+    public ResponseEntity<DriverSeasonStatsDto> getDriverStats(
+            @PathVariable Long id, @RequestParam Integer season) {
+        return ResponseEntity.ok(raceResultService.getDriverStats(id, season));
     }
 }

@@ -4,12 +4,14 @@ import com.pitstop.backend.config.SecurityConfig;
 import com.pitstop.backend.dto.DriverDto;
 import com.pitstop.backend.dto.PagedResponse;
 import com.pitstop.backend.service.DriverService;
+import com.pitstop.backend.service.RaceResultService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -26,7 +28,11 @@ class DriverControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @MockitoBean
     private DriverService driverService;
+
+    @MockitoBean
+    private RaceResultService raceResultService;
 
     @Test
     @DisplayName("GET /api/v1/drivers returns 200 with paged response")
