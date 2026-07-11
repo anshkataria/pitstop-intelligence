@@ -3,5 +3,23 @@
     <a routerLink="/" class="navbar__logo" aria-label="Pitstop Intelligence home">
       <img src="/images/pitstop-logo.svg" alt="Pitstop Intelligence" />
     </a>
+
+    <ul class="navbar__links" aria-label="Primary navigation">
+      @for (link of navLinks; track link.path) {
+        <li>
+          <a
+            [routerLink]="link.path"
+            routerLinkActive="navbar__link--active"
+            class="navbar__link"
+            >{{ link.label }}</a
+          >
+        </li>
+      }
+    </ul>
+
+    <div class="navbar__actions">
+      <a routerLink="/sign-in" class="navbar__signin">Sign in</a
+      ><a routerLink="/dashboard" class="navbar__dashboard">Open Dashboard</a>
+    </div>
   </div>
 </nav>

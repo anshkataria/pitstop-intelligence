@@ -10,7 +10,7 @@ import { NavbarComponent } from '../../shared/components/navbar/navbar.component
       <div class="hero__content">
         <h1>Race intelligence,<br>engineered from data.</h1>
         <p class="lede">Predict race outcomes, analyse pit-stop strategy and uncover performance patterns using machine learning.</p>
-        <div class="actions"><a routerLink="/dashboard" class="primary">Explore Intelligence</a><a routerLink="/race-analysis" class="secondary">View Latest Race</a></div>
+        <div class="actions"><a routerLink="/dashboard" class="primary">Open Dashboard</a><a routerLink="/races" class="secondary">View Race Calendar</a></div>
       </div>
       <div class="race-strip">
         <div><small>NEXT RACE</small><strong>Monaco Grand Prix</strong><span>Circuit de Monaco</span></div>
