@@ -54,6 +54,28 @@ services:
       redis:
         condition: service_healthy
 
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: pitstop-ml-service
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      MLFLOW_TRACKING_URI: file:./mlruns
+      MODEL_PATH: ./models/race_predictor.json
+    volumes:
+      - ml_models:/app/models
+      - ml_runs:/app/mlruns
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   ingestion:
     build:
       context: ./ingestion
@@ -76,3 +98,5 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  ml_models:
+  ml_runs:
