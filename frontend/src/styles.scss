@@ -11,3 +11,20 @@ body { margin: 0; color: var(--ps-text); background: var(--ps-surface); font-fam
 .page { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 72px 0; }
 .page h1 { margin: 0 0 12px; font-size: clamp(2rem, 5vw, 4rem); }
 .page p { max-width: 680px; color: var(--ps-text-secondary); line-height: 1.7; }
+
+.screen { width: 100%; max-width: 1180px; margin: 0 auto; }
+.screen-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+.screen-head h1 { margin: 7px 0 8px; font: 500 clamp(28px, 3vw, 38px)/1.1 var(--ps-font-heading); letter-spacing: -0.03em; }
+.screen-head p { margin: 0; color: #6e7074; font-size: 11px; }
+.eyebrow { margin: 0; color: #d92332 !important; font: 600 9px var(--ps-font-mono) !important; letter-spacing: 0.08em; }
+.card { background: #fff; border: 1px solid #dedfe0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.018); }
+.card h2 { margin: 0; color: #3f4145; font: 500 10px var(--ps-font-mono); letter-spacing: 0.01em; }
+.btn-primary, .btn-secondary { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 0 18px; border-radius: 5px; font: 700 11px var(--ps-font-body); text-decoration: none; cursor: pointer; }
+.btn-primary { border: 1px solid #d92332; background: #d92332; color: #fff; }
+.btn-secondary { border: 1px solid #d7d8da; background: #fff; color: #333; }
+.btn-primary:disabled { opacity: .55; cursor: wait; }
+.muted { color: #777; font-size: 11px; line-height: 1.6; }
+
+@media (max-width: 700px) {
+  .screen-head { align-items: flex-start; flex-direction: column; }
+}

@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { LucideAngularModule, House, ChartNoAxesCombined, Target, UserRound, UsersRound, Database, FileText, Settings, LogOut } from 'lucide-angular';
+import { LucideAngularModule, House, CalendarDays, ChartNoAxesCombined, Target, UserRound } from 'lucide-angular';
 
 @Component({
   selector: 'app-dashboard',
@@ -14,10 +14,6 @@ import { LucideAngularModule, House, ChartNoAxesCombined, Target, UserRound, Use
           @for (item of menu; track item.path) {
             <a [routerLink]="item.path" routerLinkActive="active"><lucide-icon [img]="item.icon" [size]="19" [strokeWidth]="1.6" /> <span>{{ item.label }}</span></a>
           }
-        </nav>
-        <nav class="menu menu--footer">
-          <a href="#"><lucide-icon [img]="icons.settings" [size]="19" [strokeWidth]="1.6" /> <span>Settings</span></a>
-          <a routerLink="/"><lucide-icon [img]="icons.logOut" [size]="19" [strokeWidth]="1.6" /> <span>Log out</span></a>
         </nav>
       </aside>
 
@@ -64,15 +60,12 @@ import { LucideAngularModule, House, ChartNoAxesCombined, Target, UserRound, Use
   styleUrl: './dashboard.component.scss',
 })
 export class DashboardComponent {
-  readonly icons = { settings: Settings, logOut: LogOut };
   readonly menu = [
     { icon: House, label: 'Overview', path: '/dashboard' },
+    { icon: CalendarDays, label: 'Races', path: '/races' },
     { icon: ChartNoAxesCombined, label: 'Race Analysis', path: '/race-analysis' },
     { icon: Target, label: 'Predictions', path: '/predictions' },
     { icon: UserRound, label: 'Drivers', path: '/drivers' },
-    { icon: UsersRound, label: 'Teams', path: '/teams' },
-    { icon: Database, label: 'Data Explorer', path: '/data' },
-    { icon: FileText, label: 'Reports', path: '/reports' },
   ];
   readonly metrics = [
     { label: 'LAP', value: '32 /', unit: '58', badge: '' }, { label: 'AIR TEMP', value: '24.4', unit: '°C', badge: '' },
