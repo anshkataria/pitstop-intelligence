@@ -1,0 +1,52 @@
+:root {
+  --ps-bg: #f4f3ef;
+  --ps-surface: #ffffff;
+  --ps-bg-dark: #101112;
+
+  --ps-text: #161718;
+  --ps-text-secondary: #6e7074;
+  --ps-text-muted: #a1a3a7;
+
+  --ps-red: #d92332;
+  --ps-red-hover: #b71926;
+  --ps-red-subtle: rgba(217, 35, 50, 0.08);
+
+  --ps-green: #2d7d5b;
+  --ps-green-subtle: rgba(45, 125, 91, 0.08);
+  --ps-amber: #c58a2a;
+  --ps-amber-subtle: rgba(197, 138, 42, 0.08);
+  --ps-blue: #426b8a;
+  --ps-blue-subtle: rgba(66, 107, 138, 0.08);
+
+  --ps-border: rgba(22, 23, 24, 0.08);
+  --ps-border-strong: rgba(22, 23, 24, 0.16);
+
+  --ps-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 12px 40px rgba(0, 0, 0, 0.06);
+  --ps-shadow-hover: 0 2px 8px rgba(0, 0, 0, 0.06), 0 20px 60px rgba(0, 0, 0, 0.1);
+
+  --ps-radius-card: 18px;
+  --ps-radius-btn: 12px;
+  --ps-radius-input: 12px;
+  --ps-radius-sm: 8px;
+
+  --ps-space-1: 4px;
+  --ps-space-2: 8px;
+  --ps-space-3: 12px;
+  --ps-space-4: 16px;
+  --ps-space-5: 20px;
+  --ps-space-6: 24px;
+  --ps-space-8: 32px;
+  --ps-space-10: 40px;
+  --ps-space-12: 48px;
+  --ps-space-16: 64px;
+  --ps-space-24: 96px;
+
+  --ps-font-heading: 'Manrope', sans-serif;
+  --ps-font-body: 'Inter', sans-serif;
+  --ps-font-mono: 'IBM Plex Mono', monospace;
+
+  --ps-nav-height: 64px;
+  --ps-sidebar-width: 240px;
+
+  --ps-transition: 150ms ease;
+}
