@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { RaceService } from '../../core/services/race.service';
 import { Race } from '../../core/models/race.model';
+import { RaceResult } from '../../core/models/race-result.model';
 import { IntelligenceShellComponent } from '../../shared/components/intelligence-shell/intelligence-shell.component';
 
 @Component({
@@ -46,7 +47,22 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
           </article>
           <article class="card">
             <h2>Race classification</h2>
-            <div class="notice">Classification not available for this race.</div>
+            @if (results().length) {
+              <div class="classification">
+                @for (result of results(); track result.id) {
+                  <div>
+                    <b>{{ result.finishPosition }}</b>
+                    <p>
+                      <strong>{{ result.driverName }}</strong
+                      ><small>{{ result.constructorName }}</small>
+                    </p>
+                    <span>{{ result.points }} pts</span>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="notice">Classification not available for this race.</div>
+            }
           </article>
         </div>
       } @else if (error()) {
@@ -137,6 +153,34 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
         font-size: 11px;
         text-align: center;
       }
+      .classification {
+        margin-top: 16px;
+      }
+      .classification > div {
+        display: grid;
+        grid-template-columns: 25px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        min-height: 48px;
+        border-bottom: 1px solid #eee;
+      }
+      .classification b,
+      .classification span {
+        font: 500 10px var(--ps-font-mono);
+      }
+      .classification p {
+        margin: 0;
+        font-size: 11px;
+      }
+      .classification strong,
+      .classification small {
+        display: block;
+      }
+      .classification small {
+        margin-top: 3px;
+        color: #777;
+        font-size: 8px;
+      }
       @media (max-width: 760px) {
         .detail-grid {
           grid-template-columns: 1fr;
@@ -149,15 +193,17 @@ export class RaceDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private service = inject(RaceService);
   readonly race = signal<Race | null>(null);
+  readonly results = signal<RaceResult[]>([]);
   readonly error = signal('');
   ngOnInit() {
     const year = Number(this.route.snapshot.paramMap.get('year'));
     const round = Number(this.route.snapshot.paramMap.get('round'));
+    this.service.getBySeasonAndRound(year, round).subscribe({
+      next: (r) => this.race.set(r),
+      error: () => this.error.set('Unable to load this race.'),
+    });
     this.service
-      .getBySeasonAndRound(year, round)
-      .subscribe({
-        next: (r) => this.race.set(r),
-        error: () => this.error.set('Unable to load this race.'),
-      });
+      .getResultsBySeasonAndRound(year, round)
+      .subscribe({ next: (results) => this.results.set(results) });
   }
 }

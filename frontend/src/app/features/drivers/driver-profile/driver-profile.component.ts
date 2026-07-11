@@ -1,9 +1,11 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { LucideAngularModule, ArrowLeft, Flag, CalendarDays } from 'lucide-angular';
 import { IntelligenceShellComponent } from '../../../shared/components/intelligence-shell/intelligence-shell.component';
 import { DriversActions } from '../../../core/store/drivers/drivers.actions';
+import { DriverService } from '../../../core/services/driver.service';
+import { DriverSeasonStats, RaceResult } from '../../../core/models/race-result.model';
 import {
   selectSelectedDriver,
   selectDriversLoading,
@@ -39,24 +41,50 @@ import {
           <article class="card season">
             <h2>Current Season</h2>
             <div class="big-stats">
-              <div><strong>—</strong><span>Points</span></div>
-              <div><strong>—</strong><span>Wins</span></div>
-              <div><strong>—</strong><span>Podiums</span></div>
+              <div>
+                <strong>{{ stats()?.points ?? '—' }}</strong
+                ><span>Points</span>
+              </div>
+              <div>
+                <strong>{{ stats()?.wins ?? '—' }}</strong
+                ><span>Wins</span>
+              </div>
+              <div>
+                <strong>{{ stats()?.podiums ?? '—' }}</strong
+                ><span>Podiums</span>
+              </div>
             </div>
             <div class="small-stats">
-              <span>Season results are not available yet.</span>
+              @if (stats(); as s) {
+                <span
+                  >Average finish {{ s.averageFinish ?? '—' }} · {{ s.polePositions }} poles ·
+                  {{ s.dnfs }} DNFs</span
+                >
+              } @else {
+                <span>Season results are not available yet.</span>
+              }
             </div>
           </article>
           <article class="card">
             <h2>Race forecast</h2>
-            <p class="muted">
-              Add this driver to a starting grid and forecast the result.
-            </p>
+            <p class="muted">Add this driver to a starting grid and forecast the result.</p>
             <a routerLink="/predictions" class="btn-primary">Create prediction</a>
           </article>
           <article class="card performance">
             <h2>Performance trend</h2>
-            <div class="empty-chart"><span>No race history available.</span></div>
+            @if (results().length) {
+              <div class="result-history">
+                @for (r of results(); track r.id) {
+                  <div>
+                    <span>R{{ r.round }}</span
+                    ><i [style.height.px]="140 - (r.finishPosition ?? 20) * 5"></i
+                    ><b>P{{ r.finishPosition ?? '—' }}</b>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="empty-chart"><span>No race history available.</span></div>
+            }
           </article>
         </div>
       }
@@ -158,6 +186,35 @@ import {
         color: #888;
         font-size: 11px;
       }
+      .result-history {
+        height: 190px;
+        display: flex;
+        align-items: flex-end;
+        gap: 10px;
+        padding: 25px 10px 0;
+        border-bottom: 1px solid #ddd;
+        background: linear-gradient(#eee 1px, transparent 1px) 0 0/100% 42px;
+        overflow-x: auto;
+      }
+      .result-history div {
+        min-width: 28px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 5px;
+      }
+      .result-history span,
+      .result-history b {
+        font: 500 8px var(--ps-font-mono);
+      }
+      .result-history i {
+        width: 4px;
+        min-height: 8px;
+        background: #d92332;
+        border-radius: 4px;
+      }
       .state {
         padding: 60px;
       }
@@ -176,13 +233,22 @@ import {
 export class DriverProfileComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private store = inject(Store);
+  private driverService = inject(DriverService);
   readonly driver = this.store.selectSignal(selectSelectedDriver);
   readonly loading = this.store.selectSignal(selectDriversLoading);
+  readonly stats = signal<DriverSeasonStats | null>(null);
+  readonly results = signal<RaceResult[]>([]);
   readonly back = ArrowLeft;
   readonly flag = Flag;
   readonly calendar = CalendarDays;
   ngOnInit() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
-    if (id) this.store.dispatch(DriversActions.loadDriverById({ id }));
+    if (id) {
+      this.store.dispatch(DriversActions.loadDriverById({ id }));
+      this.driverService.getStats(id, 2024).subscribe({ next: (stats) => this.stats.set(stats) });
+      this.driverService
+        .getResults(id, 2024)
+        .subscribe({ next: (results) => this.results.set(results) });
+    }
   }
 }
