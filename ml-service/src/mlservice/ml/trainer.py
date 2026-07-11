@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import logging
 import sys
+import json
 from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error
@@ -34,7 +35,7 @@ MODEL_PARAMS = {
 }
 
 
-def train(settings: Settings) -> None:
+def train(settings: Settings) -> dict:
     mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
     mlflow.set_experiment(settings.experiment_name)
 
@@ -59,7 +60,7 @@ def train(settings: Settings) -> None:
         len(X_train), len(X_val), X_train.shape[1],
     )
 
-    with mlflow.start_run():
+    with mlflow.start_run() as run:
         mlflow.log_params(MODEL_PARAMS)
         mlflow.log_param("train_rows", len(X_train))
         mlflow.log_param("val_rows", len(X_val))
@@ -78,10 +79,12 @@ def train(settings: Settings) -> None:
         mae = mean_absolute_error(y_val, y_pred)
         rmse = float(np.sqrt(mean_squared_error(y_val, y_pred)))
         within_3 = float(np.mean(np.abs(y_pred - y_val) <= 3))
+        confidence_margin = max(1, int(np.ceil(np.quantile(np.abs(y_pred - y_val), 0.90))))
 
         mlflow.log_metric("mae", mae)
         mlflow.log_metric("rmse", rmse)
         mlflow.log_metric("within_3_positions", within_3)
+        mlflow.log_metric("confidence_margin_90", confidence_margin)
 
         logger.info("MAE: %.3f  RMSE: %.3f  Within3: %.3f", mae, rmse, within_3)
 
@@ -89,13 +92,26 @@ def train(settings: Settings) -> None:
         model_path.parent.mkdir(parents=True, exist_ok=True)
         model.get_booster().save_model(str(model_path))
 
+        metadata = {
+            "model_version": run.info.run_id,
+            "confidence_level": 0.90,
+            "confidence_margin": confidence_margin,
+            "mae": float(mae),
+            "rmse": rmse,
+            "within_3_positions": within_3,
+        }
+        metadata_path = model_path.with_suffix(".metadata.json")
+        metadata_path.write_text(json.dumps(metadata, indent=2))
+
         engineer.save()
 
         mlflow.xgboost.log_model(model, artifact_path="model")
         mlflow.log_artifact(str(model_path), artifact_path="artifacts")
+        mlflow.log_artifact(str(metadata_path), artifact_path="artifacts")
 
         logger.info("Model saved to %s", model_path)
         logger.info("MLflow run complete")
+        return metadata
 
 
 if __name__ == "__main__":

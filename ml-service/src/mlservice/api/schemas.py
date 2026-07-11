@@ -1,7 +1,11 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
-class DriverEntry(BaseModel):
+class ApiModel(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
+
+class DriverEntry(ApiModel):
     driver_ref: str = Field(..., min_length=1, max_length=50, examples=["hamilton"])
     constructor_ref: str = Field(..., min_length=1, max_length=50, examples=["mercedes"])
     circuit_name: str = Field(..., min_length=1, examples=["Bahrain International Circuit"])
@@ -12,7 +16,7 @@ class DriverEntry(BaseModel):
     round: int = Field(..., ge=1, le=30, examples=[1])
 
 
-class PredictionRequest(BaseModel):
+class PredictionRequest(ApiModel):
     entries: list[DriverEntry] = Field(..., min_length=1, max_length=20)
 
     @field_validator("entries")
@@ -24,7 +28,7 @@ class PredictionRequest(BaseModel):
         return entries
 
 
-class PredictionResult(BaseModel):
+class PredictionResult(ApiModel):
     driver_ref: str
     constructor_ref: str
     grid_position: int
@@ -34,17 +38,21 @@ class PredictionResult(BaseModel):
     confidence_range_high: int
 
 
-class PredictionResponse(BaseModel):
+class PredictionResponse(ApiModel):
+    prediction_run_id: int
     predictions: list[PredictionResult]
     model_loaded: bool
+    model_version: str
 
 
-class HealthResponse(BaseModel):
+class HealthResponse(ApiModel):
     status: str
     model_loaded: bool
     service: str = "pitstop-ml-service"
 
 
-class TrainResponse(BaseModel):
+class TrainResponse(ApiModel):
     status: str
     message: str
+    model_version: str
+    confidence_margin: int

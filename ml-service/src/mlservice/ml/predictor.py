@@ -2,6 +2,7 @@ import xgboost as xgb
 import pandas as pd
 import numpy as np
 import logging
+import json
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -36,6 +37,8 @@ class RacePredictor:
         self._model: xgb.XGBRegressor | None = None
         self._engineer: FeatureEngineer | None = None
         self._loaded = False
+        self._confidence_margin = 3
+        self._model_version = "unknown"
 
     def load(self) -> None:
         if not self._model_path.exists():
@@ -49,6 +52,12 @@ class RacePredictor:
 
         self._engineer = FeatureEngineer()
         self._engineer.load(ENCODERS_PATH)
+
+        metadata_path = self._model_path.with_suffix(".metadata.json")
+        if metadata_path.exists():
+            metadata = json.loads(metadata_path.read_text())
+            self._confidence_margin = int(metadata.get("confidence_margin", 3))
+            self._model_version = str(metadata.get("model_version", "unknown"))
 
         self._loaded = True
         logger.info("Model loaded from %s", self._model_path)
@@ -80,7 +89,7 @@ class RacePredictor:
         for pred in raw_predictions:
             pred_clipped = float(np.clip(pred, 1, 20))
             pred_rounded = int(round(pred_clipped))
-            margin = 3
+            margin = self._confidence_margin
             outputs.append(PredictionOutput(
                 predicted_position=round(pred_clipped, 2),
                 predicted_position_rounded=pred_rounded,
@@ -93,3 +102,7 @@ class RacePredictor:
     @property
     def is_loaded(self) -> bool:
         return self._loaded
+
+    @property
+    def model_version(self) -> str:
+        return self._model_version

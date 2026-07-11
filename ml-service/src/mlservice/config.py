@@ -1,8 +1,9 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", protected_namespaces=())
     db_host: str = "localhost"
     db_port: int = 5432
     db_name: str = "pitstop"
@@ -14,10 +15,6 @@ class Settings(BaseSettings):
     experiment_name: str = "f1_race_position"
 
     min_seasons_for_training: int = 2
-
-    class Config:
-        env_file = ".env"
-        protected_namespaces = ()
 
     def db_dsn(self) -> str:
         return (

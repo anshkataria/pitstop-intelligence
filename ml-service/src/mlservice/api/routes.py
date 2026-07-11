@@ -11,6 +11,7 @@ from mlservice.api.schemas import (
 from mlservice.ml.predictor import RacePredictor, PredictionInput
 from mlservice.ml.trainer import train
 from mlservice.config import Settings, get_settings
+from mlservice.data.prediction_store import save_prediction
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ def health(predictor: RacePredictor = Depends(get_predictor)):
 def predict(
     request: PredictionRequest,
     predictor: RacePredictor = Depends(get_predictor),
+    settings: Settings = Depends(get_settings),
 ):
     if not predictor.is_loaded:
         raise HTTPException(
@@ -74,19 +76,33 @@ def predict(
         for entry, output in zip(request.entries, outputs)
     ]
 
+    try:
+        run_id = save_prediction(settings, inputs, outputs, predictor.model_version)
+    except Exception as exc:
+        logger.error("Could not save prediction history: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail="Prediction succeeded but history could not be saved")
+
     return PredictionResponse(
+        prediction_run_id=run_id,
         predictions=results,
         model_loaded=predictor.is_loaded,
+        model_version=predictor.model_version,
     )
 
 
 @router.post("/train", response_model=TrainResponse)
-def trigger_training(settings: Settings = Depends(get_settings)):
+def trigger_training(
+    settings: Settings = Depends(get_settings),
+    predictor: RacePredictor = Depends(get_predictor),
+):
     try:
-        train(settings)
+        metadata = train(settings)
+        predictor.load()
         return TrainResponse(
             status="success",
             message="Model trained and saved successfully",
+            model_version=metadata["model_version"],
+            confidence_margin=metadata["confidence_margin"],
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
