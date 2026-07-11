@@ -22,4 +22,23 @@ export interface PredictionResult {
 export interface PredictionResponse {
   predictions: PredictionResult[];
   modelLoaded: boolean;
+  predictionRunId: number;
+  modelVersion: string;
+}
+
+export interface PredictionContextEntry {
+  driverId: number;
+  driverRef: string;
+  driverName: string;
+  driverNationality: string;
+  constructorId: number;
+  constructorRef: string;
+  constructorName: string;
+  constructorNationality: string;
+  gridPosition: number;
+}
+
+export interface PredictionContext {
+  race: import('./race.model').Race;
+  entries: PredictionContextEntry[];
 }

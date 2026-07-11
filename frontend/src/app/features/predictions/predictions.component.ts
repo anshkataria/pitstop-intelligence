@@ -1,20 +1,23 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { LucideAngularModule, ArrowUp, ArrowDown } from 'lucide-angular';
 import { PredictionService } from '../../core/services/prediction.service';
-import { PredictionResult } from '../../core/models/prediction.model';
+import { RaceService } from '../../core/services/race.service';
+import { PredictionContextEntry, PredictionResult } from '../../core/models/prediction.model';
+import { Race } from '../../core/models/race.model';
 import { IntelligenceShellComponent } from '../../shared/components/intelligence-shell/intelligence-shell.component';
 
 @Component({
   selector: 'app-predictions',
   standalone: true,
-  imports: [FormsModule, IntelligenceShellComponent],
+  imports: [FormsModule, LucideAngularModule, IntelligenceShellComponent],
   template: `<app-intelligence-shell
     ><section class="screen">
       <header class="screen-head">
         <div>
           <p class="eyebrow">FORECAST</p>
           <h1>Race Prediction</h1>
-          <p>Set the grid. See the likely finishing order.</p>
+          <p>Choose a race, set the grid and forecast the finishing order.</p>
         </div>
         <span class="health" [class.online]="modelLoaded()"
           >● {{ modelLoaded() ? 'Model ready' : 'Model unavailable' }}</span
@@ -22,49 +25,81 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
       </header>
       <div class="prediction-layout">
         <article class="card builder">
-          <h2>Race configuration</h2>
-          <div class="form-grid">
-            <label>Season<input type="number" [(ngModel)]="season" /></label
-            ><label>Round<input type="number" [(ngModel)]="round" /></label
-            ><label class="wide">Circuit<input [(ngModel)]="circuitName" /></label>
+          <h2>RACE</h2>
+          <div class="selectors">
+            <label
+              >Season<select [(ngModel)]="season" (ngModelChange)="loadRaces()">
+                <option [ngValue]="2024">2024</option>
+                <option [ngValue]="2023">2023</option>
+              </select></label
+            ><label
+              >Grand Prix<select [(ngModel)]="round" (ngModelChange)="loadContext()">
+                @for (r of races(); track r.id) {
+                  <option [ngValue]="r.round">R{{ r.round }} · {{ r.name }}</option>
+                }
+              </select></label
+            >
           </div>
-          <h2>Starting grid</h2>
-          <div class="entries">
-            @for (e of entries; track $index; let i = $index) {
-              <div class="entry">
-                <b>{{ i + 1 }}</b
-                ><input [(ngModel)]="e.driverRef" placeholder="driver ref" /><input
-                  [(ngModel)]="e.constructorRef"
-                  placeholder="constructor ref"
-                /><input [(ngModel)]="e.driverNationality" placeholder="driver nationality" /><input
-                  [(ngModel)]="e.constructorNationality"
-                  placeholder="team nationality"
-                />
-              </div>
-            }
+          <div class="grid-head">
+            <h2>STARTING GRID</h2>
+            <span>{{ entries().length }} drivers</span>
           </div>
-          <button class="btn-primary" (click)="predict()" [disabled]="loading()">
-            {{ loading() ? 'Predicting…' : 'Run prediction' }}
-          </button>
+          @if (contextLoading()) {
+            <div class="state">Loading grid…</div>
+          } @else if (entries().length) {
+            <div class="entries">
+              @for (e of entries(); track e.driverRef; let i = $index) {
+                <div class="entry">
+                  <b>{{ i + 1 }}</b
+                  ><span class="avatar">{{ initials(e.driverName) }}</span>
+                  <p>
+                    <strong>{{ e.driverName }}</strong
+                    ><small>{{ e.constructorName }}</small>
+                  </p>
+                  <div>
+                    <button (click)="move(i, -1)" [disabled]="i === 0">
+                      <lucide-icon [img]="up" [size]="14" /></button
+                    ><button (click)="move(i, 1)" [disabled]="i === entries().length - 1">
+                      <lucide-icon [img]="down" [size]="14" />
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+            <button
+              class="btn-primary run"
+              (click)="predict()"
+              [disabled]="loading() || !modelLoaded()"
+            >
+              {{ loading() ? 'Predicting…' : 'Run prediction' }}
+            </button>
+          } @else {
+            <div class="state">No starting grid is stored for this race.</div>
+          }
           @if (error()) {
             <p class="error">{{ error() }}</p>
           }
         </article>
         <article class="card output">
-          <h2>PREDICTED CLASSIFICATION</h2>
+          <div class="output-head">
+            <h2>PREDICTED CLASSIFICATION</h2>
+            @if (runId()) {
+              <span>RUN #{{ runId() }}</span>
+            }
+          </div>
           @if (results().length) {
             @for (r of results(); track r.driverRef) {
               <div class="result">
                 <span>{{ r.predictedPositionRounded }}</span>
                 <p>
-                  <strong>{{ r.driverRef }}</strong
-                  ><small>{{ r.constructorRef }} · Grid {{ r.gridPosition }}</small>
+                  <strong>{{ driverName(r.driverRef) }}</strong
+                  ><small>{{ constructorName(r.driverRef) }} · Grid {{ r.gridPosition }}</small>
                 </p>
                 <b>{{ r.confidenceRangeLow }}–{{ r.confidenceRangeHigh }}</b>
               </div>
             }
           } @else {
-            <div class="empty">Run the model to see ranked results and confidence ranges.</div>
+            <div class="empty">Your forecast will appear here.</div>
           }
         </article>
       </div>
@@ -84,52 +119,106 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
       }
       .prediction-layout {
         display: grid;
-        grid-template-columns: 1.3fr 0.7fr;
+        grid-template-columns: 1.1fr 0.9fr;
         gap: 18px;
       }
       .prediction-layout article {
         padding: 22px;
       }
-      .form-grid {
+      .selectors {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 140px 1fr;
         gap: 12px;
-        margin: 20px 0 30px;
+        margin: 18px 0 28px;
       }
-      .form-grid .wide {
-        grid-column: 1/3;
-      }
-      label {
+      .selectors label {
         font-size: 9px;
         color: #666;
       }
-      input {
+      .selectors select {
+        display: block;
         width: 100%;
-        height: 40px;
+        height: 42px;
         margin-top: 7px;
-        padding: 0 11px;
+        padding: 0 10px;
         border: 1px solid #dedfe0;
         border-radius: 5px;
+        background: #fff;
+      }
+      .grid-head,
+      .output-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .grid-head span,
+      .output-head span {
+        font: 500 8px var(--ps-font-mono);
+        color: #777;
       }
       .entries {
-        margin: 17px 0;
+        margin-top: 12px;
+        max-height: 470px;
+        overflow: auto;
       }
       .entry {
         display: grid;
-        grid-template-columns: 24px repeat(4, 1fr);
+        grid-template-columns: 24px 32px 1fr auto;
         align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
+        gap: 10px;
+        min-height: 51px;
+        border-bottom: 1px solid #eee;
       }
-      .entry b {
-        font: 500 11px var(--ps-font-mono);
+      .entry > b {
+        font: 500 10px var(--ps-font-mono);
       }
-      .entry input {
+      .avatar {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #161718;
+        color: #fff;
+        font: 600 8px var(--ps-font-mono);
+      }
+      .entry p {
         margin: 0;
+        font-size: 11px;
+      }
+      .entry strong,
+      .entry small {
+        display: block;
+      }
+      .entry small {
+        margin-top: 3px;
+        color: #777;
+        font-size: 8px;
+      }
+      .entry button {
+        width: 27px;
+        height: 26px;
+        padding: 0;
+        border: 1px solid #ddd;
+        background: #fff;
+      }
+      .entry button:disabled {
+        opacity: 0.3;
+      }
+      .run {
+        margin-top: 18px;
       }
       .error {
         color: #d92332;
-        font-size: 11px;
+        font-size: 10px;
+      }
+      .state,
+      .empty {
+        display: grid;
+        place-items: center;
+        min-height: 280px;
+        color: #888;
+        font-size: 10px;
       }
       .result {
         display: grid;
@@ -162,89 +251,89 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
         font-size: 9px;
       }
       .result > b {
-        font: 500 12px var(--ps-font-mono);
+        font: 500 11px var(--ps-font-mono);
         color: #d92332;
       }
-      .empty {
-        display: grid;
-        place-items: center;
-        min-height: 330px;
-        color: #888;
-        font-size: 11px;
-        text-align: center;
-      }
-      @media (max-width: 900px) {
+      @media (max-width: 850px) {
         .prediction-layout {
           grid-template-columns: 1fr;
-        }
-        .entry {
-          grid-template-columns: 24px 1fr 1fr;
-        }
-        .entry input:nth-last-child(-n + 2) {
-          display: none;
         }
       }
     `,
   ],
 })
 export class PredictionsComponent {
-  private service = inject(PredictionService);
+  private readonly predictions = inject(PredictionService);
+  private readonly raceService = inject(RaceService);
+  readonly races = signal<Race[]>([]);
+  readonly entries = signal<PredictionContextEntry[]>([]);
   readonly results = signal<PredictionResult[]>([]);
   readonly loading = signal(false);
+  readonly contextLoading = signal(false);
   readonly error = signal('');
   readonly modelLoaded = signal(false);
+  readonly runId = signal<number | null>(null);
+  readonly up = ArrowUp;
+  readonly down = ArrowDown;
   season = 2024;
   round = 1;
-  circuitName = 'Bahrain International Circuit';
-  entries = [
-    this.entry('norris', 'mclaren', 'British', 'British', 1),
-    this.entry('verstappen', 'red_bull', 'Dutch', 'Austrian', 2),
-    this.entry('leclerc', 'ferrari', 'Monegasque', 'Italian', 3),
-    this.entry('piastri', 'mclaren', 'Australian', 'British', 4),
-    this.entry('sainz', 'ferrari', 'Spanish', 'Italian', 5),
-  ];
+  private circuitName = '';
   constructor() {
-    this.service
-      .health()
-      .subscribe({
-        next: (h) => this.modelLoaded.set(h.model_loaded),
-        error: () => this.modelLoaded.set(false),
-      });
+    this.predictions.health().subscribe({
+      next: (h) => this.modelLoaded.set(h.model_loaded),
+      error: () => this.modelLoaded.set(false),
+    });
+    this.loadRaces();
   }
-  private entry(
-    driverRef: string,
-    constructorRef: string,
-    driverNationality: string,
-    constructorNationality: string,
-    gridPosition: number,
-  ) {
-    return { driverRef, constructorRef, driverNationality, constructorNationality, gridPosition };
+  loadRaces() {
+    this.raceService.getBySeason(this.season).subscribe({
+      next: (races) => {
+        this.races.set(races);
+        this.round = races[0]?.round ?? 1;
+        this.loadContext();
+      },
+      error: () => this.error.set('Unable to load races.'),
+    });
+  }
+  loadContext() {
+    if (!this.round) return;
+    this.contextLoading.set(true);
+    this.predictions.getContext(this.season, this.round).subscribe({
+      next: (context) => {
+        this.entries.set([...context.entries].sort((a, b) => a.gridPosition - b.gridPosition));
+        this.circuitName = context.race.circuitName;
+        this.contextLoading.set(false);
+      },
+      error: () => {
+        this.entries.set([]);
+        this.contextLoading.set(false);
+      },
+    });
+  }
+  move(index: number, direction: number) {
+    const next = index + direction;
+    if (next < 0 || next >= this.entries().length) return;
+    const values = [...this.entries()];
+    [values[index], values[next]] = [values[next], values[index]];
+    this.entries.set(values);
   }
   predict() {
     this.loading.set(true);
     this.error.set('');
-    const entries = this.entries.map((e, i) => ({
-      ...e,
-      gridPosition: i + 1,
+    const entries = this.entries().map((e, i) => ({
+      driverRef: e.driverRef,
+      constructorRef: e.constructorRef,
       circuitName: this.circuitName,
+      driverNationality: e.driverNationality,
+      constructorNationality: e.constructorNationality,
+      gridPosition: i + 1,
       seasonYear: this.season,
       round: this.round,
     }));
-    this.service.predict(entries).subscribe({
-      next: (r) => {
-        const raw = r.predictions as any[];
-        this.results.set(
-          raw.map((x) => ({
-            driverRef: x.driverRef ?? x.driver_ref,
-            constructorRef: x.constructorRef ?? x.constructor_ref,
-            gridPosition: x.gridPosition ?? x.grid_position,
-            predictedPosition: x.predictedPosition ?? x.predicted_position,
-            predictedPositionRounded: x.predictedPositionRounded ?? x.predicted_position_rounded,
-            confidenceRangeLow: x.confidenceRangeLow ?? x.confidence_range_low,
-            confidenceRangeHigh: x.confidenceRangeHigh ?? x.confidence_range_high,
-          })),
-        );
-        this.modelLoaded.set(r.modelLoaded ?? (r as any).model_loaded);
+    this.predictions.predict(entries).subscribe({
+      next: (response) => {
+        this.results.set(response.predictions);
+        this.runId.set(response.predictionRunId);
         this.loading.set(false);
       },
       error: (e) => {
@@ -256,5 +345,18 @@ export class PredictionsComponent {
         this.loading.set(false);
       },
     });
+  }
+  initials(name: string) {
+    return name
+      .split(' ')
+      .map((x) => x[0])
+      .join('')
+      .slice(0, 2);
+  }
+  driverName(ref: string) {
+    return this.entries().find((e) => e.driverRef === ref)?.driverName ?? ref;
+  }
+  constructorName(ref: string) {
+    return this.entries().find((e) => e.driverRef === ref)?.constructorName ?? ref;
   }
 }
