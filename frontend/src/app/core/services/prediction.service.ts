@@ -2,13 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { PredictionEntry, PredictionResponse } from '../models/prediction.model';
-import { API_URL, ML_URL } from '../tokens/api.tokens';
+import { ML_URL } from '../tokens/api.tokens';
 
 @Injectable({ providedIn: 'root' })
 export class PredictionService {
   private readonly http = inject(HttpClient);
   private readonly mlUrl = inject(ML_URL);
-  private readonly base = `${this.mlUrl}/v1/drivers`;
+  private readonly base = `${this.mlUrl}/v1`;
 
   predict(entries: PredictionEntry[]): Observable<PredictionResponse> {
     const body = {
@@ -29,4 +29,5 @@ export class PredictionService {
   health(): Observable<{ status: string; model_loaded: boolean }> {
     return this.http.get<{ status: string; model_loaded: boolean }>(`${this.base}/health`);
   }
+
 }

@@ -8,7 +8,7 @@ import { API_URL } from '../tokens/api.tokens';
 export class RaceService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = inject(API_URL);
-  private readonly base = `${this.apiUrl}/v1/drivers`;
+  private readonly base = `${this.apiUrl}/v1/races`;
 
   getBySeason(year: number): Observable<Race[]> {
     return this.http.get<Race[]>(`${this.base}/season/${year}`);
