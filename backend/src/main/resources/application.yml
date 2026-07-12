@@ -51,3 +51,8 @@ management:
   endpoint:
     health:
       show-details: always
+
+security:
+  jwt:
+    secret: ${JWT_SECRET:pitstop-development-secret-change-before-production-2026}
+    access-token-seconds: ${JWT_ACCESS_TOKEN_SECONDS:900}
