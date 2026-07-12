@@ -1,6 +1,9 @@
-import { Component, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { finalize } from 'rxjs';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-sign-in',
@@ -40,7 +43,9 @@ import { RouterLink } from '@angular/router';
           <label><input type="checkbox" formControlName="remember" /> Remember me</label
           ><button type="button">Forgot password?</button>
         </div>
-        <button class="submit" type="submit" [disabled]="form.invalid">Continue</button>
+        <button class="submit" type="submit" [disabled]="form.invalid || busy()">
+          {{ busy() ? 'Signing in…' : 'Continue' }}
+        </button>
         @if (message()) {
           <p class="message">{{ message() }}</p>
         }
@@ -209,14 +214,33 @@ import { RouterLink } from '@angular/router';
   ],
 })
 export class SignInComponent {
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   readonly message = signal('');
+  readonly busy = signal(false);
   readonly form = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
-    password: new FormControl('', [Validators.required, Validators.minLength(6)]),
+    password: new FormControl('', [Validators.required, Validators.minLength(8)]),
     remember: new FormControl(false),
   });
-  submit() {
-    if (this.form.valid)
-      this.message.set('Secure sign-in will be available when account access is enabled.');
+  submit(): void {
+    if (this.form.invalid || this.busy()) return;
+    const { email, password, remember } = this.form.getRawValue();
+    if (!email || !password) return;
+    this.message.set('');
+    this.busy.set(true);
+    this.auth.login({ email, password }, Boolean(remember))
+      .pipe(finalize(() => this.busy.set(false)))
+      .subscribe({
+        next: () => {
+          const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/dashboard';
+          void this.router.navigateByUrl(returnUrl);
+        },
+        error: (error: HttpErrorResponse) => this.message.set(
+          error.status === 401 ? 'Email or password is incorrect.'
+            : 'Sign-in is unavailable. Check that the backend is running and try again.',
+        ),
+      });
   }
 }

@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard, guestGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -7,16 +8,19 @@ export const routes: Routes = [
   },
   {
     path: 'sign-in',
+    canActivate: [guestGuard],
     loadComponent: () =>
       import('./features/sign-in/sign-in.component').then((m) => m.SignInComponent),
   },
   {
     path: 'dashboard',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
   },
   {
     path: 'drivers',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/drivers/driver-list/driver-list.component').then(
         (m) => m.DriverListComponent,
@@ -24,6 +28,7 @@ export const routes: Routes = [
   },
   {
     path: 'drivers/:id',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/drivers/driver-profile/driver-profile.component').then(
         (m) => m.DriverProfileComponent,
@@ -31,11 +36,13 @@ export const routes: Routes = [
   },
   {
     path: 'predictions',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/predictions/predictions.component').then((m) => m.PredictionsComponent),
   },
   {
     path: 'race-analysis',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/race-analysis/race-analysis.component').then(
         (m) => m.RaceAnalysisComponent,
@@ -43,11 +50,13 @@ export const routes: Routes = [
   },
   {
     path: 'races',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/races/race-list.component').then((m) => m.RaceListComponent),
   },
   {
     path: 'races/:year/:round',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/races/race-detail.component').then((m) => m.RaceDetailComponent),
   },
