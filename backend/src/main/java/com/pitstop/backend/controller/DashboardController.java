@@ -18,4 +18,14 @@ public class DashboardController {
             @RequestParam(required = false) Integer round) {
         return ResponseEntity.ok(dashboardService.getSummary(season, round));
     }
+
+    @GetMapping("/season/{year}")
+    public ResponseEntity<DashboardSummaryDto> getSeasonSummary(@PathVariable Integer year) {
+        return ResponseEntity.ok(dashboardService.getSeasonSummary(year));
+    }
+
+    @GetMapping("/race/{raceId}")
+    public ResponseEntity<DashboardSummaryDto> getRaceSummary(@PathVariable Long raceId) {
+        return ResponseEntity.ok(dashboardService.getRaceSummary(raceId));
+    }
 }
