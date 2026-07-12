@@ -35,6 +35,12 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'teams',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/teams/team-list.component').then((m) => m.TeamListComponent),
+  },
+  {
     path: 'predictions',
     canActivate: [authGuard],
     loadComponent: () =>

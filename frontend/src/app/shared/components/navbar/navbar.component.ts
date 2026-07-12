@@ -15,6 +15,7 @@ export class NavbarComponent {
     { label: 'Race Analysis', path: '/race-analysis' },
     { label: 'Predictions', path: '/predictions' },
     { label: 'Drivers', path: '/drivers' },
+    { label: 'Teams', path: '/teams' },
   ];
 
   @HostListener('window:scroll')
