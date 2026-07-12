@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IntelligenceShellComponent } from '../../shared/components/intelligence-shell/intelligence-shell.component';
+import { SeasonService } from '../../core/services/season.service';
 
 @Component({
   selector: 'app-race-analysis',
@@ -16,8 +17,9 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
         </div>
         <div class="selectors">
           <select [(ngModel)]="season">
-            <option>2024</option>
-            <option>2023</option></select
+            @for (year of seasons(); track year) {
+              <option [ngValue]="year">{{ year }}</option>
+            }</select
           ><select>
             <option>Bahrain Grand Prix</option>
             <option>Australian Grand Prix</option>
@@ -180,5 +182,16 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
   ],
 })
 export class RaceAnalysisComponent {
+  private readonly seasonService = inject(SeasonService);
+  readonly seasons = signal<number[]>([]);
   season = 2024;
+
+  constructor() {
+    this.seasonService.getAll().subscribe({
+      next: (years) => {
+        this.seasons.set(years);
+        this.season = years[0] ?? this.season;
+      },
+    });
+  }
 }

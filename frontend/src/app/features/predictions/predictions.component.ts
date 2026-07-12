@@ -6,6 +6,7 @@ import { RaceService } from '../../core/services/race.service';
 import { PredictionContextEntry, PredictionResult } from '../../core/models/prediction.model';
 import { Race } from '../../core/models/race.model';
 import { IntelligenceShellComponent } from '../../shared/components/intelligence-shell/intelligence-shell.component';
+import { SeasonService } from '../../core/services/season.service';
 
 @Component({
   selector: 'app-predictions',
@@ -29,8 +30,9 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
           <div class="selectors">
             <label
               >Season<select [(ngModel)]="season" (ngModelChange)="loadRaces()">
-                <option [ngValue]="2024">2024</option>
-                <option [ngValue]="2023">2023</option>
+                @for (year of seasons(); track year) {
+                  <option [ngValue]="year">{{ year }}</option>
+                }
               </select></label
             ><label
               >Grand Prix<select [(ngModel)]="round" (ngModelChange)="loadContext()">
@@ -265,6 +267,8 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
 export class PredictionsComponent {
   private readonly predictions = inject(PredictionService);
   private readonly raceService = inject(RaceService);
+  private readonly seasonService = inject(SeasonService);
+  readonly seasons = signal<number[]>([]);
   readonly races = signal<Race[]>([]);
   readonly entries = signal<PredictionContextEntry[]>([]);
   readonly results = signal<PredictionResult[]>([]);
@@ -283,7 +287,14 @@ export class PredictionsComponent {
       next: (h) => this.modelLoaded.set(h.model_loaded),
       error: () => this.modelLoaded.set(false),
     });
-    this.loadRaces();
+    this.seasonService.getAll().subscribe({
+      next: (years) => {
+        this.seasons.set(years);
+        this.season = years[0] ?? this.season;
+        this.loadRaces();
+      },
+      error: () => this.loadRaces(),
+    });
   }
   loadRaces() {
     this.raceService.getBySeason(this.season).subscribe({

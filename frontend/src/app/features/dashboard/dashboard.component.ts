@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { DashboardSummary } from '../../core/models/dashboard.model';
 import { IntelligenceShellComponent } from '../../shared/components/intelligence-shell/intelligence-shell.component';
+import { SeasonService } from '../../core/services/season.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -24,8 +25,9 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
           </p>
         </div>
         <select [(ngModel)]="season" (ngModelChange)="load()">
-          <option [ngValue]="2024">2024 Season</option>
-          <option [ngValue]="2023">2023 Season</option>
+          @for (year of seasons(); track year) {
+            <option [ngValue]="year">{{ year }} Season</option>
+          }
         </select>
       </header>
       @if (loading()) {
@@ -90,8 +92,8 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
           <article class="card season-note">
             <h2>DATA COVERAGE</h2>
             <p>
-              This dashboard contains historical race and classification data from PostgreSQL. Live
-              telemetry and weather will be added in a later phase.
+              Season totals and the latest classification are aggregated by the intelligence API,
+              keeping calculation rules consistent across every client.
             </p>
           </article>
         </section>
@@ -102,17 +104,26 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
 })
 export class DashboardComponent {
   private readonly service = inject(DashboardService);
+  private readonly seasonService = inject(SeasonService);
   readonly summary = signal<DashboardSummary | null>(null);
+  readonly seasons = signal<number[]>([]);
   readonly loading = signal(true);
   readonly error = signal('');
   season = 2024;
   constructor() {
-    this.load();
+    this.seasonService.getAll().subscribe({
+      next: (years) => {
+        this.seasons.set(years);
+        this.season = years[0] ?? this.season;
+        this.load();
+      },
+      error: () => this.load(),
+    });
   }
   load() {
     this.loading.set(true);
     this.error.set('');
-    this.service.getSummary(this.season).subscribe({
+    this.service.getSeasonSummary(this.season).subscribe({
       next: (s) => {
         this.summary.set(s);
         this.loading.set(false);

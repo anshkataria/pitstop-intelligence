@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
@@ -9,6 +9,7 @@ import {
   selectRacesLoading,
   selectSelectedSeason,
 } from '../../core/store/races/races.selectors';
+import { SeasonService } from '../../core/services/season.service';
 
 @Component({
   selector: 'app-race-list',
@@ -23,8 +24,9 @@ import {
           <p>Every round, circuit and race date.</p>
         </div>
         <select [(ngModel)]="season" (ngModelChange)="load()">
-          <option>2024</option>
-          <option>2023</option>
+          @for (year of seasons(); track year) {
+            <option [ngValue]="year">{{ year }}</option>
+          }
         </select>
       </header>
       <div class="race-grid">
@@ -114,11 +116,20 @@ import {
 })
 export class RaceListComponent implements OnInit {
   private store = inject(Store);
+  private readonly seasonService = inject(SeasonService);
   readonly races = this.store.selectSignal(selectAllRaces);
   readonly loading = this.store.selectSignal(selectRacesLoading);
+  readonly seasons = signal<number[]>([]);
   season = 2024;
   ngOnInit() {
-    this.load();
+    this.seasonService.getAll().subscribe({
+      next: (years) => {
+        this.seasons.set(years);
+        this.season = years[0] ?? this.season;
+        this.load();
+      },
+      error: () => this.load(),
+    });
   }
   load() {
     this.store.dispatch(RacesActions.selectSeason({ year: +this.season }));

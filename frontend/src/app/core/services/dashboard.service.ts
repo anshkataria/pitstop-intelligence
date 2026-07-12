@@ -14,4 +14,12 @@ export class DashboardService {
     if (round != null) params = params.set('round', round);
     return this.http.get<DashboardSummary>(this.base, { params });
   }
+
+  getSeasonSummary(season: number): Observable<DashboardSummary> {
+    return this.http.get<DashboardSummary>(`${this.base}/season/${season}`);
+  }
+
+  getRaceSummary(raceId: number): Observable<DashboardSummary> {
+    return this.http.get<DashboardSummary>(`${this.base}/race/${raceId}`);
+  }
 }
