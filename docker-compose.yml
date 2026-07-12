@@ -54,6 +54,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/api/v1/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   ml-service:
     build:
@@ -92,6 +98,8 @@ services:
       SEASONS_TO_FETCH: ${SEASONS_TO_FETCH:-2023,2024}
     depends_on:
       postgres:
+        condition: service_healthy
+      backend:
         condition: service_healthy
     profiles:
       - ingestion
