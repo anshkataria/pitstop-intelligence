@@ -1,9 +1,12 @@
 import logging
 import sys
 import time
+
+from pitstop import loaders
 from pitstop.config import load_config
 from pitstop.ergast_client import ErgastClient
-from pitstop import loaders
+from pitstop.loaders import LoadStats
+from pitstop.run_tracker import RunOutcome, fail_run, finish_run, start_run
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,53 +20,45 @@ logger = logging.getLogger(__name__)
 
 def run() -> None:
     config = load_config()
-    client = ErgastClient(config.ergast)
-
     logger.info("Starting ingestion for seasons: %s", config.ergast.seasons)
-
-    total_drivers = 0
-    total_constructors = 0
-    total_races = 0
-    total_results = 0
-    failed_seasons = []
+    run_id = start_run(config.db, config.ergast.seasons)
+    client = ErgastClient(config.ergast)
+    total = LoadStats()
+    failed_seasons: list[int] = []
+    errors: list[str] = []
 
     try:
         for season in config.ergast.seasons:
             try:
                 logger.info("--- Season %d ---", season)
-
-                loaders.load_season(config.db, season)
-
-                drivers = client.fetch_drivers(season)
-                total_drivers += loaders.load_drivers(config.db, drivers)
-
-                constructors = client.fetch_constructors(season)
-                total_constructors += loaders.load_constructors(config.db, constructors)
-
-                races = client.fetch_races(season)
-                total_races += loaders.load_races(config.db, races)
-
-                results = client.fetch_results(season)
-                total_results += loaders.load_race_results(config.db, results)
-
+                total += loaders.load_season(config.db, season)
+                total += loaders.load_drivers(config.db, client.fetch_drivers(season))
+                total += loaders.load_constructors(config.db, client.fetch_constructors(season))
+                total += loaders.load_races(config.db, client.fetch_races(season))
+                total += loaders.load_race_results(config.db, client.fetch_results(season))
                 time.sleep(1)
-
             except Exception as exc:
-                logger.error("Season %d failed: %s", season, exc, exc_info=True)
+                message = f"Season {season}: {type(exc).__name__}: {exc}"
+                logger.error("%s", message, exc_info=True)
                 failed_seasons.append(season)
-                continue
+                errors.append(message)
 
+        outcome = RunOutcome(total, failed_seasons, errors)
+        status = finish_run(config.db, run_id, outcome)
+        logger.info(
+            "Ingestion %s — inserted: %d, updated: %d, skipped: %d, failed seasons: %s",
+            status, total.inserted, total.updated, total.skipped, failed_seasons or "none",
+        )
+        if failed_seasons:
+            raise SystemExit(1)
+    except SystemExit:
+        raise
+    except Exception as exc:
+        logger.critical("Ingestion run failed: %s", exc, exc_info=True)
+        fail_run(config.db, run_id, f"{type(exc).__name__}: {exc}")
+        raise
     finally:
         client.close()
-
-    logger.info(
-        "Ingestion complete — drivers: %d, constructors: %d, races: %d, results: %d",
-        total_drivers, total_constructors, total_races, total_results,
-    )
-
-    if failed_seasons:
-        logger.warning("Failed seasons (re-run to retry): %s", failed_seasons)
-        sys.exit(1)
 
 
 if __name__ == "__main__":
