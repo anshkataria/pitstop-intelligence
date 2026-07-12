@@ -48,6 +48,7 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       ML_SERVICE_URL: http://ml-service:8000
+      JWT_SECRET: ${JWT_SECRET:-pitstop-development-secret-change-before-production-2026}
     depends_on:
       postgres:
         condition: service_healthy
