@@ -37,7 +37,12 @@ class AppConfig:
 
 def load_config() -> AppConfig:
     seasons_raw = os.getenv("SEASONS_TO_FETCH", "2023,2024")
-    seasons = [int(y.strip()) for y in seasons_raw.split(",")]
+    try:
+        seasons = sorted({int(y.strip()) for y in seasons_raw.split(",") if y.strip()})
+    except ValueError as exc:
+        raise ValueError("SEASONS_TO_FETCH must be a comma-separated list of years") from exc
+    if not seasons or any(year < 1950 or year > 2100 for year in seasons):
+        raise ValueError("SEASONS_TO_FETCH contains no valid Formula 1 season years")
 
     return AppConfig(
         db=DatabaseConfig(
