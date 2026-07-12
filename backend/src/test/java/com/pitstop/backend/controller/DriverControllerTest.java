@@ -5,6 +5,8 @@ import com.pitstop.backend.dto.DriverDto;
 import com.pitstop.backend.dto.PagedResponse;
 import com.pitstop.backend.service.DriverService;
 import com.pitstop.backend.service.RaceResultService;
+import com.pitstop.backend.security.AccountUserDetailsService;
+import com.pitstop.backend.security.JwtService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -34,7 +37,14 @@ class DriverControllerTest {
     @MockitoBean
     private RaceResultService raceResultService;
 
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private AccountUserDetailsService accountUserDetailsService;
+
     @Test
+    @WithMockUser
     @DisplayName("GET /api/v1/drivers returns 200 with paged response")
     void getAllDrivers_returns200() throws Exception {
         DriverDto driver = DriverDto.builder()
@@ -65,6 +75,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser
     @DisplayName("GET /api/v1/drivers/{id} returns 200 for known driver")
     void getDriverById_returns200() throws Exception {
         DriverDto driver = DriverDto.builder()
