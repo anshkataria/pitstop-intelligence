@@ -12,6 +12,12 @@ from mlservice.ml.predictor import RacePredictor, PredictionInput
 from mlservice.ml.trainer import train
 from mlservice.config import Settings, get_settings
 from mlservice.data.prediction_store import save_prediction
+from mlservice.observability import (
+    MODEL_INFO,
+    MODEL_LOADED,
+    PREDICTED_POSITION,
+    PREDICTIONS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +44,7 @@ def predict(
     settings: Settings = Depends(get_settings),
 ):
     if not predictor.is_loaded:
+        PREDICTIONS.labels("model_unavailable").inc()
         raise HTTPException(
             status_code=503,
             detail="Model not loaded. POST /train first.",
@@ -60,6 +67,7 @@ def predict(
     try:
         outputs = predictor.predict(inputs)
     except Exception as exc:
+        PREDICTIONS.labels("inference_error").inc()
         logger.error("Prediction failed: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail="Prediction failed")
 
@@ -79,8 +87,13 @@ def predict(
     try:
         run_id = save_prediction(settings, inputs, outputs, predictor.model_version)
     except Exception as exc:
+        PREDICTIONS.labels("storage_error").inc()
         logger.error("Could not save prediction history: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail="Prediction succeeded but history could not be saved")
+
+    PREDICTIONS.labels("success").inc()
+    for output in outputs:
+        PREDICTED_POSITION.observe(output.predicted_position)
 
     return PredictionResponse(
         prediction_run_id=run_id,
@@ -98,6 +111,8 @@ def trigger_training(
     try:
         metadata = train(settings)
         predictor.load()
+        MODEL_LOADED.set(1)
+        MODEL_INFO.info({"version": predictor.model_version or "unknown"})
         return TrainResponse(
             status="success",
             message="Model trained and saved successfully",
