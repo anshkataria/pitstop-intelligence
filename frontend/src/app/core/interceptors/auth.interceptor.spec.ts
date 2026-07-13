@@ -29,10 +29,10 @@ describe('authInterceptor', () => {
     request.flush([]);
   });
 
-  it('does not expose Spring token to the ML service', () => {
-    client.get('http://localhost:8000/v1/health').subscribe();
-    const request = http.expectOne('http://localhost:8000/v1/health');
-    expect(request.request.headers.has('Authorization')).toBe(false);
+  it('adds the token to ML requests proxied through Spring', () => {
+    client.get('http://localhost:8080/api/v1/ml/health').subscribe();
+    const request = http.expectOne('http://localhost:8080/api/v1/ml/health');
+    expect(request.request.headers.get('Authorization')).toBe('Bearer jwt-token');
     request.flush({ status: 'UP' });
   });
 });

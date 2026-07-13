@@ -3,14 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { PredictionContext, PredictionEntry, PredictionResponse, PredictionRunDetail, PredictionRunSummary } from '../models/prediction.model';
-import { API_URL, ML_URL } from '../tokens/api.tokens';
+import { API_URL } from '../tokens/api.tokens';
 
 @Injectable({ providedIn: 'root' })
 export class PredictionService {
   private readonly http = inject(HttpClient);
-  private readonly mlUrl = inject(ML_URL);
-  private readonly base = `${this.mlUrl}/v1`;
   private readonly apiUrl = inject(API_URL);
+  private readonly mlBase = `${this.apiUrl}/v1/ml`;
 
   getContext(season: number, round: number): Observable<PredictionContext> {
     return this.http.get<PredictionContext>(`${this.apiUrl}/v1/predictions/context`, {
@@ -31,7 +30,7 @@ export class PredictionService {
         round: e.round,
       })),
     };
-    return this.http.post<any>(`${this.base}/predict`, body).pipe(
+    return this.http.post<any>(`${this.mlBase}/predict`, body).pipe(
       map((response) => ({
         predictionRunId: response.prediction_run_id,
         modelLoaded: response.model_loaded,
@@ -50,7 +49,7 @@ export class PredictionService {
   }
 
   health(): Observable<{ status: string; model_loaded: boolean }> {
-    return this.http.get<{ status: string; model_loaded: boolean }>(`${this.base}/health`);
+    return this.http.get<{ status: string; model_loaded: boolean }>(`${this.mlBase}/health`);
   }
 
   getHistory(limit = 25): Observable<PredictionRunSummary[]> {
