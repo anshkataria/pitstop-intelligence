@@ -7,6 +7,8 @@
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { margin: 0; color: var(--ps-text); background: var(--ps-surface); font-family: var(--ps-font-body); }
+button, a, input, select, textarea { font: inherit; }
+:focus-visible { outline: 3px solid rgba(217, 35, 50, .42); outline-offset: 3px; }
 .ps-btn-primary { display: inline-flex; align-items: center; min-height: 38px; padding: 0 16px; border-radius: 8px; background: var(--ps-red); color: #fff; font-size: 14px; font-weight: 700; text-decoration: none; }
 .page { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 72px 0; }
 .page h1 { margin: 0 0 12px; font-size: clamp(2rem, 5vw, 4rem); }
@@ -27,4 +29,9 @@ body { margin: 0; color: var(--ps-text); background: var(--ps-surface); font-fam
 
 @media (max-width: 700px) {
   .screen-head { align-items: flex-start; flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
