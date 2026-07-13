@@ -45,7 +45,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/v1/auth/register", "/v1/auth/login", "/v1/auth/refresh",
-                    "/v1/health", "/actuator/health", "/actuator/info"
+                    "/v1/health", "/actuator/health", "/actuator/info",
+                    "/actuator/prometheus"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

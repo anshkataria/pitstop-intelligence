@@ -1,6 +1,8 @@
 package com.pitstop.backend.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.pitstop.backend.observability.CorrelationIdFilter;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ public class MlProxyService {
     public JsonNode health() {
         return exchange(() -> client.get()
                 .uri("/v1/health")
+                .header(CorrelationIdFilter.HEADER, requestId())
                 .retrieve()
                 .body(JsonNode.class));
     }
@@ -38,10 +41,16 @@ public class MlProxyService {
     private JsonNode post(String path, JsonNode request) {
         return exchange(() -> client.post()
                 .uri(path)
+                .header(CorrelationIdFilter.HEADER, requestId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
                 .body(JsonNode.class));
+    }
+
+    private String requestId() {
+        String requestId = MDC.get(CorrelationIdFilter.MDC_KEY);
+        return requestId == null ? "spring-internal" : requestId;
     }
 
     private JsonNode exchange(MlCall call) {
