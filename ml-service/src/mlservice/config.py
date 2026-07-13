@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
     min_seasons_for_training: int = 2
     cors_allowed_origins: str = "http://localhost:4200"
+    ml_internal_token: str = "pitstop-development-ml-internal-token"
 
     def cors_origins(self) -> list[str]:
         return [

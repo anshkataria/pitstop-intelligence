@@ -18,7 +18,7 @@ network.
 
 ## Local Docker setup
 
-Create the local environment file and replace the example JWT value:
+Create the local environment file and replace the example JWT and internal ML token values:
 
 ```bash
 cp .env.example .env
@@ -28,6 +28,28 @@ docker compose up --build
 Open `http://localhost:4200`. The developer Compose file also publishes Spring Boot,
 PostgreSQL and Redis for local debugging. FastAPI remains private and is reached via
 Spring at `/api/v1/ml/*`.
+
+## Model-training access
+
+`POST /api/v1/ml/train` is restricted to authenticated accounts with the `ADMIN`
+role. Public registration deliberately creates only `USER` accounts. Promote a
+trusted account through an audited database operation rather than exposing a public
+role-management endpoint:
+
+```sql
+UPDATE app_users
+SET role = 'ADMIN', updated_at = CURRENT_TIMESTAMP
+WHERE email = 'admin@example.com';
+```
+
+Spring reloads the account role while validating each authenticated request, then
+attaches `X-Pitstop-Internal-Token` when an administrator calls FastAPI. FastAPI
+rejects training requests that do not contain the configured private token, so
+clients cannot bypass Spring by calling the internal service directly.
+
+Set the same strong `ML_INTERNAL_TOKEN` value for Spring and FastAPI. It must be
+different from `JWT_SECRET` and must never be exposed to Angular or committed to the
+repository. Production Compose requires both secrets explicitly.
 
 Run historical ingestion when required:
 

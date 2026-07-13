@@ -17,6 +17,7 @@ import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 import static org.springframework.test.web.client.ExpectedCount.once;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
@@ -31,7 +32,7 @@ class MlProxyServiceTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
-        service = new MlProxyService(builder, "http://ml-service:8000");
+        service = new MlProxyService(builder, "http://ml-service:8000", "internal-test-token");
     }
 
     @Test
@@ -74,6 +75,20 @@ class MlProxyServiceTest {
                     assertThat(ex.getStatusCode()).isEqualTo(UNPROCESSABLE_ENTITY);
                     assertThat(ex.getReason()).isEqualTo("ML request was rejected");
                 });
+        server.verify();
+    }
+
+    @Test
+    void authenticatesTrainingRequestsToThePrivateMlService() throws Exception {
+        JsonNode request = objectMapper.readTree("{}");
+        server.expect(once(), requestTo("http://ml-service:8000/v1/train"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(header(MlProxyService.INTERNAL_TOKEN_HEADER, "internal-test-token"))
+                .andRespond(withSuccess("{\"status\":\"success\"}", MediaType.APPLICATION_JSON));
+
+        JsonNode response = service.train(request);
+
+        assertThat(response.get("status").asText()).isEqualTo("success");
         server.verify();
     }
 }

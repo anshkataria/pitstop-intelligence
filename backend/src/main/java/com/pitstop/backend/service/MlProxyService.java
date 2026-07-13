@@ -15,11 +15,16 @@ import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 
 @Service
 public class MlProxyService {
+    static final String INTERNAL_TOKEN_HEADER = "X-Pitstop-Internal-Token";
+
     private final RestClient client;
+    private final String internalToken;
 
     public MlProxyService(RestClient.Builder builder,
-                          @Value("${services.ml.base-url}") String baseUrl) {
+                          @Value("${services.ml.base-url}") String baseUrl,
+                          @Value("${services.ml.internal-token}") String internalToken) {
         this.client = builder.baseUrl(baseUrl).build();
+        this.internalToken = internalToken;
     }
 
     public JsonNode health() {
@@ -35,7 +40,14 @@ public class MlProxyService {
     }
 
     public JsonNode train(JsonNode request) {
-        return post("/v1/train", request);
+        return exchange(() -> client.post()
+                .uri("/v1/train")
+                .header(CorrelationIdFilter.HEADER, requestId())
+                .header(INTERNAL_TOKEN_HEADER, internalToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .retrieve()
+                .body(JsonNode.class));
     }
 
     private JsonNode post(String path, JsonNode request) {

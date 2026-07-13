@@ -63,6 +63,7 @@ logging:
 services:
   ml:
     base-url: ${ML_SERVICE_URL:http://localhost:8000}
+    internal-token: ${ML_INTERNAL_TOKEN:pitstop-development-ml-internal-token}
 
 security:
   cors:

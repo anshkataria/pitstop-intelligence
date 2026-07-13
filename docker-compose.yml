@@ -65,6 +65,7 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       ML_SERVICE_URL: http://ml-service:8000
+      ML_INTERNAL_TOKEN: ${ML_INTERNAL_TOKEN:-pitstop-development-ml-internal-token}
       JWT_SECRET: ${JWT_SECRET:-pitstop-development-secret-change-before-production-2026}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:4200}
     depends_on:
@@ -97,6 +98,7 @@ services:
       MLFLOW_TRACKING_URI: file:./mlruns
       MODEL_PATH: ./models/race_predictor.json
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:4200}
+      ML_INTERNAL_TOKEN: ${ML_INTERNAL_TOKEN:-pitstop-development-ml-internal-token}
     volumes:
       - ml_models:/app/models
       - ml_runs:/app/mlruns

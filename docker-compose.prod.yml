@@ -21,6 +21,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the production environment}
+      ML_INTERNAL_TOKEN: ${ML_INTERNAL_TOKEN:?Set ML_INTERNAL_TOKEN in the production environment}
       CORS_ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in the production environment}
     restart: unless-stopped
     logging: *default-logging
@@ -33,6 +34,7 @@ services:
   ml-service:
     environment:
       CORS_ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in the production environment}
+      ML_INTERNAL_TOKEN: ${ML_INTERNAL_TOKEN:?Set ML_INTERNAL_TOKEN in the production environment}
     restart: unless-stopped
     logging: *default-logging
     deploy:

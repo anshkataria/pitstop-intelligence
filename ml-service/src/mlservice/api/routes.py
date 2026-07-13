@@ -1,5 +1,8 @@
 import logging
-from fastapi import APIRouter, HTTPException, Depends
+import secrets
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, Depends, Header
 
 from mlservice.api.schemas import (
     PredictionRequest,
@@ -22,6 +25,16 @@ from mlservice.observability import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+TRAINING_TOKEN_HEADER = "X-Pitstop-Internal-Token"
+
+
+def require_training_token(
+    token: Annotated[str | None, Header(alias=TRAINING_TOKEN_HEADER)] = None,
+    settings: Settings = Depends(get_settings),
+) -> None:
+    if token is None or not secrets.compare_digest(token, settings.ml_internal_token):
+        raise HTTPException(status_code=403, detail="Model training is not permitted")
 
 
 def get_predictor(settings: Settings = Depends(get_settings)) -> RacePredictor:
@@ -105,6 +118,7 @@ def predict(
 
 @router.post("/train", response_model=TrainResponse)
 def trigger_training(
+    _: None = Depends(require_training_token),
     settings: Settings = Depends(get_settings),
     predictor: RacePredictor = Depends(get_predictor),
 ):
