@@ -35,6 +35,12 @@ Run historical ingestion when required:
 docker compose --profile ingestion run --rm ingestion
 ```
 
+Add Prometheus and Grafana with:
+
+```bash
+docker compose --profile monitoring up --build
+```
+
 Stop services without deleting data:
 
 ```bash
