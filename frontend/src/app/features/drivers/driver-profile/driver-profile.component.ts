@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { LucideAngularModule, ArrowLeft, Flag, CalendarDays } from 'lucide-angular';
 import { IntelligenceShellComponent } from '../../../shared/components/intelligence-shell/intelligence-shell.component';
@@ -10,11 +11,12 @@ import {
   selectSelectedDriver,
   selectDriversLoading,
 } from '../../../core/store/drivers/drivers.selectors';
+import { SeasonService } from '../../../core/services/season.service';
 
 @Component({
   selector: 'app-driver-profile',
   standalone: true,
-  imports: [RouterLink, LucideAngularModule, IntelligenceShellComponent],
+  imports: [RouterLink, FormsModule, LucideAngularModule, IntelligenceShellComponent],
   template: `<app-intelligence-shell
     ><section class="screen profile">
       <a routerLink="/drivers" class="back"><lucide-icon [img]="back" [size]="18" /> Drivers</a>
@@ -23,7 +25,7 @@ import {
       } @else if (driver(); as d) {
         <header class="profile-hero card">
           <div class="portrait">{{ d.firstName[0] }}{{ d.lastName[0] }}</div>
-          <div>
+          <div class="identity">
             <p class="eyebrow">DRIVER PROFILE</p>
             <h1>{{ d.fullName }}</h1>
             <p>
@@ -33,13 +35,18 @@ import {
               {{ d.dateOfBirth || 'Unknown birth date' }}
             </p>
           </div>
+          <select [(ngModel)]="season" (ngModelChange)="loadSeason()">
+            @for (year of seasons(); track year) {
+              <option [ngValue]="year">{{ year }} Season</option>
+            }
+          </select>
         </header>
         <nav class="tabs">
           <a class="active">Overview</a><a>Stats</a><a>Performance</a><a>Career</a>
         </nav>
         <div class="profile-grid">
           <article class="card season">
-            <h2>Current Season</h2>
+            <h2>{{ season }} Season</h2>
             <div class="big-stats">
               <div>
                 <strong>{{ stats()?.points ?? '—' }}</strong
@@ -126,6 +133,8 @@ import {
         align-items: center;
         color: #666;
       }
+      .profile-hero .identity { flex: 1; }
+      .profile-hero select { height: 42px; padding: 0 13px; border: 1px solid #ddd; border-radius: 6px; background: #fff; }
       .tabs {
         display: flex;
         gap: 34px;
@@ -234,21 +243,35 @@ export class DriverProfileComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private store = inject(Store);
   private driverService = inject(DriverService);
+  private readonly seasonService = inject(SeasonService);
   readonly driver = this.store.selectSignal(selectSelectedDriver);
   readonly loading = this.store.selectSignal(selectDriversLoading);
   readonly stats = signal<DriverSeasonStats | null>(null);
   readonly results = signal<RaceResult[]>([]);
+  readonly seasons = signal<number[]>([]);
   readonly back = ArrowLeft;
   readonly flag = Flag;
   readonly calendar = CalendarDays;
+  private driverId = 0;
+  season = 2024;
   ngOnInit() {
-    const id = Number(this.route.snapshot.paramMap.get('id'));
-    if (id) {
-      this.store.dispatch(DriversActions.loadDriverById({ id }));
-      this.driverService.getStats(id, 2024).subscribe({ next: (stats) => this.stats.set(stats) });
-      this.driverService
-        .getResults(id, 2024)
-        .subscribe({ next: (results) => this.results.set(results) });
-    }
+    this.driverId = Number(this.route.snapshot.paramMap.get('id'));
+    if (!this.driverId) return;
+    this.store.dispatch(DriversActions.loadDriverById({ id: this.driverId }));
+    this.seasonService.getAll().subscribe({
+      next: (years) => {
+        this.seasons.set(years);
+        this.season = years[0] ?? this.season;
+        this.loadSeason();
+      },
+      error: () => this.loadSeason(),
+    });
+  }
+
+  loadSeason(): void {
+    this.stats.set(null);
+    this.results.set([]);
+    this.driverService.getStats(this.driverId, this.season).subscribe({ next: (stats) => this.stats.set(stats) });
+    this.driverService.getResults(this.driverId, this.season).subscribe({ next: (results) => this.results.set(results) });
   }
 }
