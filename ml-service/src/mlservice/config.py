@@ -15,6 +15,14 @@ class Settings(BaseSettings):
     experiment_name: str = "f1_race_position"
 
     min_seasons_for_training: int = 2
+    cors_allowed_origins: str = "http://localhost:4200"
+
+    def cors_origins(self) -> list[str]:
+        return [
+            origin.strip()
+            for origin in self.cors_allowed_origins.split(",")
+            if origin.strip()
+        ]
 
     def db_dsn(self) -> str:
         return (
