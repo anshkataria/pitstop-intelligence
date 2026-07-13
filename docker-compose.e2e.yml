@@ -1,0 +1,22 @@
+services:
+  frontend:
+    container_name: pitstop-e2e-frontend
+    ports: !override
+      - "14200:80"
+
+  backend:
+    container_name: pitstop-e2e-backend
+    ports: !reset []
+    environment:
+      CORS_ALLOWED_ORIGINS: http://127.0.0.1:14200
+
+  ml-service:
+    container_name: pitstop-e2e-ml-service
+
+  postgres:
+    container_name: pitstop-e2e-postgres
+    ports: !reset []
+
+  redis:
+    container_name: pitstop-e2e-redis
+    ports: !reset []

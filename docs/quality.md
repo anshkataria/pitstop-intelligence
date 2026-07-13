@@ -14,16 +14,36 @@ The complete Spring context test uses Testcontainers and therefore requires a ru
 It starts a disposable PostgreSQL 16 container, applies every Flyway migration, validates Hibernate
 mappings, and removes the database after the suite.
 
-## Remaining browser acceptance suite
+## Browser acceptance suite
 
-Add Playwright after the single-origin reverse proxy exists in Phase 9. Its first flows should cover:
+Playwright exercises the real Nginx, Spring, FastAPI, PostgreSQL and Redis containers against an
+isolated Compose project. The runner creates fresh volumes, applies Flyway migrations, seeds a
+deterministic 2024 race, creates a user through the API and removes the E2E volumes afterward.
 
-- register/sign in, refresh an expired session, and sign out;
-- open drivers, search, paginate, and change profile season;
-- open a race and move into real race analysis;
-- configure a grid, run a prediction, and inspect prediction history;
-- show the 404 and backend-unavailable states;
-- keyboard-only navigation and automated accessibility checks.
+The full suite requires Docker Desktop (or another running Docker Engine). Install Chromium once:
 
-Deferring browser automation until the reverse proxy avoids hard-coding the temporary two-origin
-development architecture into long-lived acceptance tests.
+```bash
+cd frontend
+npx playwright install chromium
+```
+
+Run the complete isolated suite from the repository root:
+
+```bash
+./scripts/run-e2e.sh
+```
+
+The suite covers:
+
+- public landing and 404 routes;
+- protected-route redirects and invalid credentials;
+- real sign-in and sign-out through Spring Security;
+- dashboard aggregation from seeded PostgreSQL data;
+- driver roster and season statistics;
+- race calendar, classification and race-analysis navigation;
+- constructor standings;
+- prediction context and model-readiness behavior.
+
+Use `npm run e2e:ui` from `frontend` when the isolated stack is already running if you want the
+interactive Playwright debugger. Failed CI runs upload traces, screenshots, videos and the HTML
+report as a GitHub Actions artifact.
