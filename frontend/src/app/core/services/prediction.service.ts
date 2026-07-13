@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { PredictionContext, PredictionEntry, PredictionResponse } from '../models/prediction.model';
+import { PredictionContext, PredictionEntry, PredictionResponse, PredictionRunDetail, PredictionRunSummary } from '../models/prediction.model';
 import { API_URL, ML_URL } from '../tokens/api.tokens';
 
 @Injectable({ providedIn: 'root' })
@@ -51,5 +51,13 @@ export class PredictionService {
 
   health(): Observable<{ status: string; model_loaded: boolean }> {
     return this.http.get<{ status: string; model_loaded: boolean }>(`${this.base}/health`);
+  }
+
+  getHistory(limit = 25): Observable<PredictionRunSummary[]> {
+    return this.http.get<PredictionRunSummary[]>(`${this.apiUrl}/v1/predictions/history`, { params: { limit } });
+  }
+
+  getHistoryRun(id: number): Observable<PredictionRunDetail> {
+    return this.http.get<PredictionRunDetail>(`${this.apiUrl}/v1/predictions/history/${id}`);
   }
 }

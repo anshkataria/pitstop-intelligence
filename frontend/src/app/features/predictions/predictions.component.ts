@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, ArrowUp, ArrowDown } from 'lucide-angular';
 import { PredictionService } from '../../core/services/prediction.service';
@@ -11,7 +12,7 @@ import { SeasonService } from '../../core/services/season.service';
 @Component({
   selector: 'app-predictions',
   standalone: true,
-  imports: [FormsModule, LucideAngularModule, IntelligenceShellComponent],
+  imports: [FormsModule, RouterLink, LucideAngularModule, IntelligenceShellComponent],
   template: `<app-intelligence-shell
     ><section class="screen">
       <header class="screen-head">
@@ -20,9 +21,7 @@ import { SeasonService } from '../../core/services/season.service';
           <h1>Race Prediction</h1>
           <p>Choose a race, set the grid and forecast the finishing order.</p>
         </div>
-        <span class="health" [class.online]="modelLoaded()"
-          >● {{ modelLoaded() ? 'Model ready' : 'Model unavailable' }}</span
-        >
+        <div><a routerLink="/predictions/history" class="history-link">Prediction history</a><span class="health" [class.online]="modelLoaded()">● {{ modelLoaded() ? 'Model ready' : 'Model unavailable' }}</span></div>
       </header>
       <div class="prediction-layout">
         <article class="card builder">
@@ -116,6 +115,7 @@ import { SeasonService } from '../../core/services/season.service';
         color: #777;
         font: 500 9px var(--ps-font-mono);
       }
+      .history-link { margin-right: 14px; color: #555; font-size: 10px; text-decoration: none; }
       .health.online {
         color: #2d7d5b;
       }

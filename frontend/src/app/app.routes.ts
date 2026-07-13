@@ -41,6 +41,11 @@ export const routes: Routes = [
       import('./features/teams/team-list.component').then((m) => m.TeamListComponent),
   },
   {
+    path: 'predictions/history',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/predictions/prediction-history.component').then((m) => m.PredictionHistoryComponent),
+  },
+  {
     path: 'predictions',
     canActivate: [authGuard],
     loadComponent: () =>

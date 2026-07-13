@@ -42,3 +42,12 @@ export interface PredictionContext {
   race: import('./race.model').Race;
   entries: PredictionContextEntry[];
 }
+
+export interface PredictionRunSummary {
+  id: number; seasonYear: number; round: number; circuitName: string;
+  modelVersion: string; createdAt: string; resultCount: number;
+}
+
+export interface PredictionRunDetail extends Omit<PredictionRunSummary, 'resultCount'> {
+  results: PredictionResult[];
+}
