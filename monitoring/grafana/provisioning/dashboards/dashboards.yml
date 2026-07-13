@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: PitStop Intelligence
+    orgId: 1
+    folder: PitStop Intelligence
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
