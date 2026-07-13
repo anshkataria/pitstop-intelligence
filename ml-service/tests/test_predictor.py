@@ -98,3 +98,26 @@ def test_predictor_load_raises_when_file_missing():
     predictor = RacePredictor(model_path="./models/does_not_exist.json")
     with pytest.raises(FileNotFoundError):
         predictor.load()
+
+
+def test_predictor_clips_positions_and_uses_model_confidence_margin():
+    predictor = RacePredictor(model_path="./models/test.json")
+    predictor._loaded = True
+    predictor._confidence_margin = 2
+    predictor._engineer = MagicMock()
+    predictor._model = MagicMock()
+    predictor._model.predict.return_value = [-5.0, 24.0]
+    entries = [
+        PredictionInput("norris", "mclaren", "Albert Park", "British", "British", 1, 2024, 3),
+        PredictionInput("piastri", "mclaren", "Albert Park", "Australian", "British", 2, 2024, 3),
+    ]
+
+    with patch("mlservice.ml.predictor.prepare_features", return_value=(pd.DataFrame(), None)):
+        outputs = predictor.predict(entries)
+
+    assert outputs[0].predicted_position_rounded == 1
+    assert outputs[0].confidence_range_low == 1
+    assert outputs[0].confidence_range_high == 3
+    assert outputs[1].predicted_position_rounded == 20
+    assert outputs[1].confidence_range_low == 18
+    assert outputs[1].confidence_range_high == 20
