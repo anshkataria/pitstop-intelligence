@@ -50,6 +50,7 @@ public class SecurityConfig {
                     "/actuator/prometheus"
                 ).permitAll()
                 .requestMatchers(HttpMethod.POST, "/v1/ml/train").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/v1/live/replay").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

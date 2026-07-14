@@ -64,6 +64,8 @@ services:
   ml:
     base-url: ${ML_SERVICE_URL:http://localhost:8000}
     internal-token: ${ML_INTERNAL_TOKEN:pitstop-development-ml-internal-token}
+  live:
+    base-url: ${LIVE_SERVICE_URL:http://localhost:8010}
 
 security:
   cors:
