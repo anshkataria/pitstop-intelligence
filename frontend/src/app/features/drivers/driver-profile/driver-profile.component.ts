@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
@@ -12,11 +12,15 @@ import {
   selectDriversLoading,
 } from '../../../core/store/drivers/drivers.selectors';
 import { SeasonService } from '../../../core/services/season.service';
+import {
+  HistoricalChartSeries,
+  HistoricalLineChartComponent,
+} from '../../../shared/components/charts/historical-line-chart.component';
 
 @Component({
   selector: 'app-driver-profile',
   standalone: true,
-  imports: [RouterLink, FormsModule, LucideAngularModule, IntelligenceShellComponent],
+  imports: [RouterLink, FormsModule, LucideAngularModule, IntelligenceShellComponent, HistoricalLineChartComponent],
   template: `<app-intelligence-shell
     ><section class="screen profile">
       <a routerLink="/drivers" class="back"><lucide-icon [img]="back" [size]="18" /> Drivers</a>
@@ -79,19 +83,14 @@ import { SeasonService } from '../../../core/services/season.service';
           </article>
           <article class="card performance">
             <h2>Performance trend</h2>
-            @if (results().length) {
-              <div class="result-history">
-                @for (r of results(); track r.id) {
-                  <div>
-                    <span>R{{ r.round }}</span
-                    ><i [style.height.px]="140 - (r.finishPosition ?? 20) * 5"></i
-                    ><b>P{{ r.finishPosition ?? '—' }}</b>
-                  </div>
-                }
-              </div>
-            } @else {
-              <div class="empty-chart"><span>No race history available.</span></div>
-            }
+            <app-historical-line-chart
+              [series]="positionSeries()"
+              [reverseY]="true"
+              [integerY]="true"
+              xLabel="Round"
+              yLabel="Position"
+              [ariaLabel]="d.fullName + ' grid and finishing position by round'"
+            />
           </article>
         </div>
       }
@@ -187,43 +186,6 @@ import { SeasonService } from '../../../core/services/season.service';
       .performance {
         grid-column: 1/3;
       }
-      .empty-chart {
-        height: 170px;
-        display: grid;
-        place-items: center;
-        background: linear-gradient(#eee 1px, transparent 1px) 0 0/100% 42px;
-        color: #888;
-        font-size: 11px;
-      }
-      .result-history {
-        height: 190px;
-        display: flex;
-        align-items: flex-end;
-        gap: 10px;
-        padding: 25px 10px 0;
-        border-bottom: 1px solid #ddd;
-        background: linear-gradient(#eee 1px, transparent 1px) 0 0/100% 42px;
-        overflow-x: auto;
-      }
-      .result-history div {
-        min-width: 28px;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 5px;
-      }
-      .result-history span,
-      .result-history b {
-        font: 500 8px var(--ps-font-mono);
-      }
-      .result-history i {
-        width: 4px;
-        min-height: 8px;
-        background: #d92332;
-        border-radius: 4px;
-      }
       .state {
         padding: 60px;
       }
@@ -248,6 +210,21 @@ export class DriverProfileComponent implements OnInit {
   readonly loading = this.store.selectSignal(selectDriversLoading);
   readonly stats = signal<DriverSeasonStats | null>(null);
   readonly results = signal<RaceResult[]>([]);
+  readonly positionSeries = computed<HistoricalChartSeries[]>(() => [
+    {
+      key: 'finish', label: 'Finish', color: '#d92332',
+      points: this.results().filter((result) => result.finishPosition != null).map((result) => ({
+        x: result.round, y: result.finishPosition as number, label: `Round ${result.round}`,
+        detail: `${result.points} points`,
+      })),
+    },
+    {
+      key: 'grid', label: 'Grid', color: '#6e7074', dashed: true,
+      points: this.results().filter((result) => result.gridPosition != null).map((result) => ({
+        x: result.round, y: result.gridPosition as number, label: `Round ${result.round}`,
+      })),
+    },
+  ]);
   readonly seasons = signal<number[]>([]);
   readonly back = ArrowLeft;
   readonly flag = Flag;

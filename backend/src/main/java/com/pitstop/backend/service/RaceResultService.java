@@ -36,6 +36,14 @@ public class RaceResultService {
                 .stream().map(this::toDto).toList();
     }
 
+    public List<RaceResultDto> findBySeason(Integer year) {
+        if (raceRepository.findBySeasonYearOrderByRoundAsc(year).isEmpty()) {
+            throw new ResourceNotFoundException("Season results", "year", year);
+        }
+        return resultRepository.findByRaceSeasonYearOrderByRaceRoundAscFinishPositionAsc(year)
+            .stream().map(this::toDto).toList();
+    }
+
     public List<RaceResultDto> findDriverResults(Long driverId, Integer year) {
         if (!driverRepository.existsById(driverId)) throw new ResourceNotFoundException("Driver", "id", driverId);
         return resultRepository.findByDriverIdAndRaceSeasonYearOrderByRaceRoundAsc(driverId, year)

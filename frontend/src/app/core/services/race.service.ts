@@ -15,6 +15,10 @@ export class RaceService {
     return this.http.get<Race[]>(`${this.base}/season/${year}`);
   }
 
+  getSeasonResults(year: number): Observable<RaceResult[]> {
+    return this.http.get<RaceResult[]>(`${this.base}/season/${year}/results`);
+  }
+
   getBySeasonAndRound(year: number, round: number): Observable<Race> {
     return this.http.get<Race>(`${this.base}/season/${year}/round/${round}`);
   }

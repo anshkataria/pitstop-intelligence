@@ -1,15 +1,21 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { DashboardSummary } from '../../core/models/dashboard.model';
 import { IntelligenceShellComponent } from '../../shared/components/intelligence-shell/intelligence-shell.component';
 import { SeasonService } from '../../core/services/season.service';
+import { RaceService } from '../../core/services/race.service';
+import { RaceResult } from '../../core/models/race-result.model';
+import {
+  HistoricalChartSeries,
+  HistoricalLineChartComponent,
+} from '../../shared/components/charts/historical-line-chart.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [FormsModule, RouterLink, IntelligenceShellComponent],
+  imports: [FormsModule, RouterLink, IntelligenceShellComponent, HistoricalLineChartComponent],
   template: `<app-intelligence-shell
     ><section class="screen">
       <header class="screen-head">
@@ -96,6 +102,15 @@ import { SeasonService } from '../../core/services/season.service';
               keeping calculation rules consistent across every client.
             </p>
           </article>
+          <article class="card points-chart">
+            <div class="card-head"><div><h2>POINTS PROGRESSION</h2><p>Leading drivers across completed rounds</p></div></div>
+            <app-historical-line-chart
+              [series]="pointsSeries()"
+              xLabel="Round"
+              yLabel="Points"
+              ariaLabel="Cumulative driver points through the selected season"
+            />
+          </article>
         </section>
       }
     </section></app-intelligence-shell
@@ -105,10 +120,13 @@ import { SeasonService } from '../../core/services/season.service';
 export class DashboardComponent {
   private readonly service = inject(DashboardService);
   private readonly seasonService = inject(SeasonService);
+  private readonly raceService = inject(RaceService);
   readonly summary = signal<DashboardSummary | null>(null);
   readonly seasons = signal<number[]>([]);
   readonly loading = signal(true);
   readonly error = signal('');
+  readonly seasonResults = signal<RaceResult[]>([]);
+  readonly pointsSeries = computed<HistoricalChartSeries[]>(() => this.buildPointsSeries(this.seasonResults()));
   season = 2024;
   constructor() {
     this.seasonService.getAll().subscribe({
@@ -123,6 +141,11 @@ export class DashboardComponent {
   load() {
     this.loading.set(true);
     this.error.set('');
+    this.seasonResults.set([]);
+    this.raceService.getSeasonResults(this.season).subscribe({
+      next: (results) => this.seasonResults.set(results),
+      error: () => this.seasonResults.set([]),
+    });
     this.service.getSeasonSummary(this.season).subscribe({
       next: (s) => {
         this.summary.set(s);
@@ -146,5 +169,35 @@ export class DashboardComponent {
   }
   movementWidth(result: { gridPosition: number | null; finishPosition: number | null }) {
     return Math.min(100, Math.max(8, Math.abs(this.movement(result)) * 10));
+  }
+
+  private buildPointsSeries(results: RaceResult[]): HistoricalChartSeries[] {
+    const colors = ['#d92332', '#24688a', '#d98516', '#2d7d5b', '#7a5aa6'];
+    const grouped = new Map<string, RaceResult[]>();
+    for (const result of results) {
+      const entries = grouped.get(result.driverRef) ?? [];
+      entries.push(result);
+      grouped.set(result.driverRef, entries);
+    }
+    return [...grouped.entries()]
+      .map(([driverRef, entries]) => ({
+        driverRef,
+        name: entries[0]?.driverName ?? driverRef,
+        entries: [...entries].sort((a, b) => a.round - b.round),
+        total: entries.reduce((sum, result) => sum + Number(result.points ?? 0), 0),
+      }))
+      .sort((a, b) => b.total - a.total).slice(0, 5)
+      .map((driver, index) => {
+        let cumulative = 0;
+        return {
+          key: driver.driverRef,
+          label: driver.name,
+          color: colors[index] ?? '#6e7074',
+          points: driver.entries.map((result) => {
+            cumulative += Number(result.points ?? 0);
+            return { x: result.round, y: cumulative, label: `Round ${result.round}` };
+          }),
+        };
+      });
   }
 }

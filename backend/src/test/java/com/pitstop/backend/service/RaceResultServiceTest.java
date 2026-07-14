@@ -45,6 +45,30 @@ class RaceResultServiceTest {
         assertThat(stats.getAverageFinish()).isEqualTo(4.0);
     }
 
+    @Test
+    void returnsTheCompleteSeasonHistoryInRaceOrder() {
+        Driver driver = Driver.builder().id(1L).driverRef("norris")
+            .firstName("Lando").lastName("Norris").build();
+        Constructor constructor = Constructor.builder().id(1L).constructorRef("mclaren")
+            .name("McLaren").build();
+        Season season = Season.builder().year(2024).build();
+        Race race = Race.builder().id(3L).season(season).round(2).build();
+        RaceResult result = RaceResult.builder().id(7L).race(race).driver(driver)
+            .constructor(constructor).finishPosition(1).points(new BigDecimal("25")).build();
+        when(raceRepository.findBySeasonYearOrderByRoundAsc(2024)).thenReturn(List.of(race));
+        when(resultRepository.findByRaceSeasonYearOrderByRaceRoundAscFinishPositionAsc(2024))
+            .thenReturn(List.of(result));
+
+        RaceResultService service = new RaceResultService(resultRepository, raceRepository, driverRepository);
+        var history = service.findBySeason(2024);
+
+        assertThat(history).singleElement().satisfies(row -> {
+            assertThat(row.getRound()).isEqualTo(2);
+            assertThat(row.getDriverRef()).isEqualTo("norris");
+            assertThat(row.getPoints()).isEqualByComparingTo("25");
+        });
+    }
+
     private RaceResult result(Driver driver, int finish, int grid, String status, String points) {
         return RaceResult.builder().driver(driver).finishPosition(finish).gridPosition(grid)
                 .status(status).points(new BigDecimal(points)).build();

@@ -23,6 +23,11 @@ public class RaceController {
         return ResponseEntity.ok(raceService.findBySeason(year));
     }
 
+    @GetMapping("/season/{year}/results")
+    public ResponseEntity<List<RaceResultDto>> getSeasonResults(@PathVariable Integer year) {
+        return ResponseEntity.ok(raceResultService.findBySeason(year));
+    }
+
     @GetMapping("/season/{year}/round/{round}")
     public ResponseEntity<RaceDto> getRaceBySeasonAndRound(
             @PathVariable Integer year,

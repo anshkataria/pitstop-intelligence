@@ -6,11 +6,12 @@ import { Race } from '../../core/models/race.model';
 import { RaceService } from '../../core/services/race.service';
 import { SeasonService } from '../../core/services/season.service';
 import { IntelligenceShellComponent } from '../../shared/components/intelligence-shell/intelligence-shell.component';
+import { GridFinishChartComponent } from '../../shared/components/charts/grid-finish-chart.component';
 
 @Component({
   selector: 'app-race-analysis',
   standalone: true,
-  imports: [FormsModule, IntelligenceShellComponent],
+  imports: [FormsModule, IntelligenceShellComponent, GridFinishChartComponent],
   template: `<app-intelligence-shell><section class="screen">
     <header class="screen-head"><div><p class="eyebrow">ANALYSIS</p><h1>Race Review</h1><p>Grid and classification, compared from the official historical record.</p></div>
       <div class="selectors"><select [(ngModel)]="season" (ngModelChange)="loadRaces()">@for(year of seasons();track year){<option [ngValue]="year">{{year}}</option>}</select>
@@ -23,8 +24,8 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
         <article class="card summary"><p class="eyebrow">ROUND {{race.round}}</p><h2>{{race.name}}</h2><p>{{race.raceDate}} · {{race.circuitName}} · {{race.country}}</p>
           @if(winner();as result){<div class="winner"><span>{{initials(result.driverName)}}</span><p><small>RACE WINNER</small><strong>{{result.driverName}}</strong><em>{{result.constructorName}}</em></p><b>{{result.points}} pts</b></div>}
         </article>
-        <article class="card movement"><h2>GRID TO FINISH</h2><p>Position gained or lost during the race</p>
-          <div class="movement-list">@for(result of results();track result.id){<div><span>{{result.driverRef.toUpperCase()}}</span><i><b [class.loss]="movement(result)<0" [style.width.%]="movementWidth(result)"></b></i><strong [class.negative]="movement(result)<0">{{movement(result)>0?'+':''}}{{movement(result)}}</strong></div>}</div>
+        <article class="card movement"><h2>GRID TO FINISH</h2><p>Drivers above the diagonal gained track position.</p>
+          <app-grid-finish-chart [results]="results()" [ariaLabel]="race.name + ' starting grid compared with final classification'" />
         </article>
         <article class="card classification"><h2>CLASSIFICATION</h2>@for(result of results();track result.id){<div class="result"><b>{{result.finishPosition}}</b><span>{{initials(result.driverName)}}</span><p><strong>{{result.driverName}}</strong><small>{{result.constructorName}} · Grid {{result.gridPosition ?? '—'}}</small></p><em>{{result.points}} pts</em></div>}@empty{<div class="notice">No classification is stored for this race.</div>}</article>
       </div>
@@ -79,6 +80,4 @@ export class RaceAnalysisComponent {
   }
 
   initials(name: string): string { return name.split(' ').map((part) => part[0]).join('').slice(0, 2); }
-  movement(result: RaceResult): number { return (result.gridPosition ?? result.finishPosition ?? 0) - (result.finishPosition ?? 0); }
-  movementWidth(result: RaceResult): number { return Math.min(100, Math.max(5, Math.abs(this.movement(result)) * 10)); }
 }
