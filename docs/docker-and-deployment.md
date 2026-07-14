@@ -74,6 +74,38 @@ full data reset is intended.
 
 ## Production Compose setup
 
+### Deployment target
+
+The supported deployment target is one Ubuntu 24.04 LTS VPS with at least 2 vCPU,
+4 GB RAM and 40 GB of persistent storage. It can run at any provider that offers a
+public IPv4 address. Docker Compose runs the application; Caddy is the only public
+container and provisions HTTPS automatically when the domain points to the server.
+
+Prepare the host once:
+
+```bash
+sudo adduser --disabled-password --gecos '' pitstop
+sudo usermod -aG docker pitstop
+sudo install -d -o pitstop -g pitstop -m 750 /opt/pitstop
+sudo install -d -o pitstop -g pitstop -m 700 /var/backups/pitstop/postgres
+```
+
+Install Docker Engine and the Compose plugin from Docker's Ubuntu repository. Add the
+deployment SSH public key to `/home/pitstop/.ssh/authorized_keys`, point the domain's
+A/AAAA records at the VPS, and allow inbound TCP 22, 80 and 443 plus UDP 443. Database,
+Redis and backend ports stay private.
+
+The GitHub `production` environment requires these secrets:
+
+- `DEPLOY_HOST`: VPS hostname or IP address;
+- `DEPLOY_USER`: `pitstop`;
+- `DEPLOY_SSH_KEY`: private Ed25519 deployment key;
+- `DEPLOY_KNOWN_HOSTS`: pinned `ssh-keyscan` output verified out of band.
+
+If the GHCR packages are private, log the `pitstop` host user into `ghcr.io` once with
+a read-only package token. The workflow never transfers registry or application
+secrets to the host.
+
 Create a secret environment file that is never committed:
 
 ```bash
@@ -81,34 +113,98 @@ cp .env.production.example .env.production
 ```
 
 Replace every placeholder. `PUBLIC_ORIGIN` must be the exact external origin,
-including `https://`. Then validate and start the merged configuration:
+including `https://`; `PUBLIC_HOST` is the same hostname without the scheme. Store
+this file only at `/opt/pitstop/.env.production`. Set `GHCR_REPOSITORY` to the
+lowercase `owner/repository` package prefix and `IMAGE_TAG` to a published commit SHA.
+Then validate the VPS configuration:
 
 ```bash
 docker compose \
   --env-file .env.production \
   -f docker-compose.yml \
   -f docker-compose.prod.yml \
+  -f docker-compose.vps.yml \
   config --quiet
-
-docker compose \
-  --env-file .env.production \
-  -f docker-compose.yml \
-  -f docker-compose.prod.yml \
-  up --build -d
 ```
+
+Run **Release images** from GitHub Actions to publish commit-addressed images. After
+all four images are available, its protected deployment job copies only the Compose,
+Caddy and operational scripts, takes a database backup, pulls that exact commit SHA,
+recreates the services and verifies `https://<PUBLIC_HOST>/healthz`.
 
 The production override:
 
-- exposes Nginx on host port 80;
+- exposes Caddy on ports 80 and 443 and keeps Nginx private;
 - removes host ports for Spring Boot, PostgreSQL and Redis;
 - activates Spring's strict `prod` profile;
 - applies container restart policies and resource limits;
 - rotates Docker JSON log files;
 - retains service health checks and dependency ordering.
 
-For public deployment, terminate HTTPS at the host load balancer or edge proxy and
-forward traffic to the frontend container. Port 80 should not be exposed directly to
-the internet without TLS in front of it.
+If the provider supplies a load balancer instead of direct DNS, forward it to the
+gateway container. Do not publish application services around the gateway.
+
+## PostgreSQL backups and restore
+
+Backups use PostgreSQL's custom archive format, compression, restrictive file
+permissions, `pg_restore --list` integrity validation and a sidecar SHA-256 checksum.
+The script writes atomically and removes archives older than `RETENTION_DAYS` only
+after a new backup succeeds.
+
+Create a manual production backup:
+
+```bash
+cd /opt/pitstop
+export COMPOSE_FILE="$PWD/docker-compose.yml:$PWD/docker-compose.prod.yml"
+ENV_FILE="$PWD/.env.production" \
+BACKUP_DIR=/var/backups/pitstop/postgres \
+./scripts/backup-database.sh
+```
+
+Install the daily 03:15 UTC systemd timer:
+
+```bash
+sudo install -m 644 deploy/systemd/pitstop-backup.service /etc/systemd/system/
+sudo install -m 644 deploy/systemd/pitstop-backup.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now pitstop-backup.timer
+systemctl list-timers pitstop-backup.timer
+journalctl -u pitstop-backup.service
+```
+
+The VPS copy protects against database corruption and deployment mistakes, but not
+loss of the server. Replicate `/var/backups/pitstop/postgres` to encrypted object
+storage or another host and periodically test a restore. Do not treat an untested or
+same-disk-only archive as a complete disaster-recovery plan.
+
+Optional S3-compatible replication is built into the backup script. Install AWS CLI
+v2, use an instance role or a least-privilege credential, and create the root-owned
+`/opt/pitstop/.backup.env` file:
+
+```text
+BACKUP_S3_URI=s3://pitstop-production-backups/postgres
+AWS_ENDPOINT_URL=https://object-storage.example.com
+```
+
+`AWS_ENDPOINT_URL` is only needed for non-AWS S3-compatible providers. Configure
+bucket encryption, versioning and a lifecycle retention policy at the provider. The
+backup service is marked failed if an explicitly configured upload does not succeed.
+
+Restore is intentionally guarded. It verifies the archive, creates a fresh
+pre-restore backup, stops database clients, replaces the database, restores it, and
+starts the application again:
+
+```bash
+cd /opt/pitstop
+export COMPOSE_FILE="$PWD/docker-compose.yml:$PWD/docker-compose.prod.yml"
+CONFIRM_RESTORE=pitstop \
+ENV_FILE="$PWD/.env.production" \
+BACKUP_DIR=/var/backups/pitstop/postgres \
+./scripts/restore-database.sh /var/backups/pitstop/postgres/pitstop_YYYYMMDDTHHMMSSZ.dump
+```
+
+Use the actual `POSTGRES_DB` value for `CONFIRM_RESTORE`. Record a successful restore
+test after initial deployment and at least quarterly.
 
 ## Operational checks
 

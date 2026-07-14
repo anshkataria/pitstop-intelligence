@@ -27,6 +27,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}-${{ matrix.service }}
           tags: |
+            type=raw,value=${{ github.sha }}
             type=sha
             type=raw,value=latest,enable={{is_default_branch}}
       - uses: docker/build-push-action@v6
@@ -37,3 +38,43 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: publish
+    environment: production
+    concurrency:
+      group: pitstop-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+      - name: Configure deployment SSH key
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Copy deployment bundle
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          tar -czf /tmp/pitstop-deploy.tgz \
+            docker-compose.yml docker-compose.prod.yml docker-compose.vps.yml \
+            deploy docker monitoring \
+            scripts/backup-database.sh scripts/restore-database.sh scripts/deploy-vps.sh
+          scp /tmp/pitstop-deploy.tgz "$DEPLOY_USER@$DEPLOY_HOST:/tmp/pitstop-deploy.tgz"
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" \
+            'mkdir -p /opt/pitstop && tar -xzf /tmp/pitstop-deploy.tgz -C /opt/pitstop'
+      - name: Back up and deploy release
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          RELEASE_TAG: ${{ github.sha }}
+          IMAGE_REPOSITORY: ${{ github.repository }}
+        run: |
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd /opt/pitstop && GHCR_REPOSITORY='$IMAGE_REPOSITORY' IMAGE_TAG='$RELEASE_TAG' ./scripts/deploy-vps.sh"

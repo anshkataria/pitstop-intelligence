@@ -1,0 +1,16 @@
+[Unit]
+Description=Pitstop Intelligence PostgreSQL backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=pitstop
+Group=pitstop
+WorkingDirectory=/opt/pitstop
+Environment=ENV_FILE=/opt/pitstop/.env.production
+Environment=COMPOSE_FILE=/opt/pitstop/docker-compose.yml:/opt/pitstop/docker-compose.prod.yml
+Environment=BACKUP_DIR=/var/backups/pitstop/postgres
+Environment=RETENTION_DAYS=14
+EnvironmentFile=-/opt/pitstop/.backup.env
+ExecStart=/opt/pitstop/scripts/backup-database.sh
