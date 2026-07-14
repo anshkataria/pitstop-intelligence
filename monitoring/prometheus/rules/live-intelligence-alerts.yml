@@ -1,0 +1,32 @@
+groups:
+  - name: pitstop-live-intelligence
+    rules:
+      - alert: LiveIntelligenceServiceDown
+        expr: up{job="live-intelligence"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: live-intelligence
+        annotations:
+          summary: Live racing intelligence service is unavailable
+          description: Prometheus cannot scrape the live provider and replay worker.
+
+      - alert: LiveTelemetryStale
+        expr: pitstop_live_active_session == 1 and (time() - pitstop_live_last_update_timestamp_seconds) > 90
+        for: 2m
+        labels:
+          severity: warning
+          service: live-intelligence
+        annotations:
+          summary: Active-session telemetry has stopped updating
+          description: A session is active but the provider worker has not completed an update in more than 90 seconds.
+
+      - alert: LiveProviderErrors
+        expr: increase(pitstop_live_errors_total[10m]) > 3
+        for: 1m
+        labels:
+          severity: warning
+          service: live-intelligence
+        annotations:
+          summary: Repeated live provider failures
+          description: The OpenF1 worker has failed more than three times in ten minutes.

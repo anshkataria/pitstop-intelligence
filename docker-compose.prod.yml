@@ -43,6 +43,17 @@ services:
           cpus: "1.50"
           memory: 1536M
 
+  live-service:
+    environment:
+      ML_INTERNAL_TOKEN: ${ML_INTERNAL_TOKEN:?Set ML_INTERNAL_TOKEN in the production environment}
+    restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.50"
+          memory: 2048M
+
   postgres:
     ports: !reset []
     restart: unless-stopped

@@ -13,6 +13,11 @@ services:
   ml-service:
     container_name: pitstop-e2e-ml-service
 
+  live-service:
+    container_name: pitstop-e2e-live-service
+    environment:
+      LIVE_WORKER_ENABLED: "false"
+
   postgres:
     container_name: pitstop-e2e-postgres
     ports: !reset []

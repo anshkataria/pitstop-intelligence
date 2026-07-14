@@ -13,7 +13,7 @@ jobs:
     environment: production
     strategy:
       matrix:
-        service: [frontend, backend, ml-service, ingestion]
+        service: [frontend, backend, ml-service, live-service, ingestion]
     steps:
       - uses: actions/checkout@v6
       - uses: docker/setup-buildx-action@v3

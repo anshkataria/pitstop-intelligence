@@ -58,6 +58,11 @@ scheduler availability, failed runs and stale historical data. Immediate failure
 notifications can also be sent to the generic JSON endpoint configured by
 `INGESTION_ALERT_WEBHOOK_URL`.
 
+The live intelligence service exposes provider record counts, active-session state, last update
+time and worker errors. Prometheus alerts on service loss, telemetry staleness and repeated provider
+errors. The complete provider, storage, Redis and SSE path is documented in
+`docs/live-intelligence.md`.
+
 ## Running monitoring locally
 
 Start the application and the optional monitoring profile:

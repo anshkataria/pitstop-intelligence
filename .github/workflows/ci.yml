@@ -52,7 +52,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [ml-service, ingestion]
+        project: [ml-service, ingestion, live-service]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6

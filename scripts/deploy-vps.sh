@@ -15,7 +15,7 @@ else
   echo "No running database found; skipping the pre-deployment backup."
 fi
 
-docker compose --env-file "$ENV_FILE" pull frontend backend ml-service ingestion ingestion-scheduler gateway
+docker compose --env-file "$ENV_FILE" pull frontend backend ml-service live-service ingestion ingestion-scheduler gateway
 docker compose --env-file "$ENV_FILE" up -d --no-build --remove-orphans
 docker compose --env-file "$ENV_FILE" ps
 
