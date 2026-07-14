@@ -13,6 +13,18 @@ export const routes: Routes = [
       import('./features/sign-in/sign-in.component').then((m) => m.SignInComponent),
   },
   {
+    path: 'register',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/register/register.component').then((m) => m.RegisterComponent),
+  },
+  {
+    path: 'account',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/account/account.component').then((m) => m.AccountComponent),
+  },
+  {
     path: 'dashboard',
     canActivate: [authGuard],
     loadComponent: () =>

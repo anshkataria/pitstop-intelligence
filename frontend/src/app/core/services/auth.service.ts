@@ -1,7 +1,14 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
-import { AuthSession, LoginCredentials } from '../models/auth.model';
+import {
+  AuthSession,
+  AuthUser,
+  LoginCredentials,
+  PasswordChange,
+  ProfileUpdate,
+  RegistrationDetails,
+} from '../models/auth.model';
 import { API_URL } from '../tokens/api.tokens';
 
 const SESSION_KEY = 'pitstop.auth.session';
@@ -20,10 +27,29 @@ export class AuthService {
       .pipe(tap((session) => this.storeSession(session, remember)));
   }
 
+  register(details: RegistrationDetails, remember: boolean): Observable<AuthSession> {
+    return this.http.post<AuthSession>(`${this.apiUrl}/v1/auth/register`, details)
+      .pipe(tap((session) => this.storeSession(session, remember)));
+  }
+
+  updateProfile(update: ProfileUpdate): Observable<AuthUser> {
+    return this.http.patch<AuthUser>(`${this.apiUrl}/v1/account/profile`, update).pipe(
+      tap((user) => {
+        const current = this.sessionState();
+        if (current) this.storeSession({ ...current, user }, this.isRemembered());
+      }),
+    );
+  }
+
+  changePassword(change: PasswordChange): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/v1/account/password`, change)
+      .pipe(tap(() => this.clearSession()));
+  }
+
   refresh(): Observable<AuthSession> {
     const current = this.sessionState();
     if (!current) throw new Error('No session is available to refresh');
-    const remember = Boolean(localStorage.getItem(SESSION_KEY));
+    const remember = this.isRemembered();
     return this.http.post<AuthSession>(`${this.apiUrl}/v1/auth/refresh`, { refreshToken: current.refreshToken })
       .pipe(tap((session) => this.storeSession(session, remember)));
   }
@@ -48,6 +74,10 @@ export class AuthService {
     sessionStorage.removeItem(SESSION_KEY);
     (remember ? localStorage : sessionStorage).setItem(SESSION_KEY, JSON.stringify(session));
     this.sessionState.set(session);
+  }
+
+  private isRemembered(): boolean {
+    return Boolean(localStorage.getItem(SESSION_KEY));
   }
 
   private readSession(): AuthSession | null {

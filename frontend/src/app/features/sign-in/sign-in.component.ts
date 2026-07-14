@@ -40,8 +40,7 @@ import { AuthService } from '../../core/services/auth.service';
             placeholder="Enter your password"
         /></label>
         <div class="options">
-          <label><input type="checkbox" formControlName="remember" /> Remember me</label
-          ><button type="button">Forgot password?</button>
+          <label><input type="checkbox" formControlName="remember" /> Remember me</label>
         </div>
         <button class="submit" type="submit" [disabled]="form.invalid || busy()">
           {{ busy() ? 'Signing in…' : 'Continue' }}
@@ -49,6 +48,7 @@ import { AuthService } from '../../core/services/auth.service';
         @if (message()) {
           <p class="message">{{ message() }}</p>
         }
+        <p class="switch">New to Pitstop? <a routerLink="/register">Create an account</a></p>
         <a routerLink="/" class="back">← Back to home</a>
       </form>
     </section>
@@ -157,12 +157,6 @@ import { AuthService } from '../../core/services/auth.service';
         align-items: center;
         gap: 7px;
       }
-      .options button {
-        border: 0;
-        background: none;
-        color: #d92332;
-        font: inherit;
-      }
       .submit {
         width: 100%;
         height: 48px;
@@ -192,6 +186,17 @@ import { AuthService } from '../../core/services/auth.service';
         text-align: center;
         text-decoration: none;
       }
+      .switch {
+        margin: 20px 0 0;
+        color: #6e7074;
+        font-size: 11px;
+        text-align: center;
+      }
+      .switch a {
+        color: #d92332;
+        font-weight: 700;
+        text-decoration: none;
+      }
       @media (max-width: 760px) {
         main {
           grid-template-columns: 1fr;
@@ -217,7 +222,11 @@ export class SignInComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-  readonly message = signal('');
+  readonly message = signal(
+    this.route.snapshot.queryParamMap.has('passwordChanged')
+      ? 'Password updated. Sign in with your new password.'
+      : '',
+  );
   readonly busy = signal(false);
   readonly form = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),

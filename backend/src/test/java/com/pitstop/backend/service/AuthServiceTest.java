@@ -21,6 +21,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -100,5 +101,54 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.refresh(new RefreshRequest("expired")))
             .isInstanceOf(ResponseStatusException.class).hasMessageContaining("expired");
+    }
+
+    @Test
+    void updatesTheAuthenticatedUsersDisplayName() {
+        UserAccount account = UserAccount.builder().id(1L).email("engineer@pitstop.test")
+            .displayName("Engineer").passwordHash("hash").role("USER").enabled(true).build();
+        when(users.findByEmailIgnoreCase(account.getEmail())).thenReturn(Optional.of(account));
+
+        UserResponse response = authService.updateProfile(
+            account.getEmail(), new UpdateProfileRequest(" Race Strategist ")
+        );
+
+        assertThat(response.displayName()).isEqualTo("Race Strategist");
+        assertThat(account.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    void changesPasswordAndRevokesEveryActiveRefreshToken() {
+        UserAccount account = UserAccount.builder().id(1L).email("engineer@pitstop.test")
+            .displayName("Engineer").passwordHash("old-hash").role("USER").enabled(true).build();
+        RefreshToken first = RefreshToken.builder().user(account).build();
+        RefreshToken second = RefreshToken.builder().user(account).build();
+        when(users.findByEmailIgnoreCase(account.getEmail())).thenReturn(Optional.of(account));
+        when(passwordEncoder.matches("current-password", "old-hash")).thenReturn(true);
+        when(passwordEncoder.matches("new-password", "old-hash")).thenReturn(false);
+        when(passwordEncoder.encode("new-password")).thenReturn("new-hash");
+        when(refreshTokens.findAllByUserIdAndRevokedAtIsNull(1L)).thenReturn(List.of(first, second));
+
+        authService.changePassword(
+            account.getEmail(), new ChangePasswordRequest("current-password", "new-password")
+        );
+
+        assertThat(account.getPasswordHash()).isEqualTo("new-hash");
+        assertThat(first.getRevokedAt()).isNotNull();
+        assertThat(second.getRevokedAt()).isNotNull();
+    }
+
+    @Test
+    void rejectsAnIncorrectCurrentPassword() {
+        UserAccount account = UserAccount.builder().id(1L).email("engineer@pitstop.test")
+            .displayName("Engineer").passwordHash("old-hash").role("USER").enabled(true).build();
+        when(users.findByEmailIgnoreCase(account.getEmail())).thenReturn(Optional.of(account));
+        when(passwordEncoder.matches("wrong-password", "old-hash")).thenReturn(false);
+
+        assertThatThrownBy(() -> authService.changePassword(
+            account.getEmail(), new ChangePasswordRequest("wrong-password", "new-password")
+        )).isInstanceOf(ResponseStatusException.class).hasMessageContaining("Current password");
+
+        verify(passwordEncoder, never()).encode(anyString());
     }
 }
