@@ -51,6 +51,13 @@ predicted-position distribution, active model version and whether a model is loa
 Spring contributes HTTP, JVM, database-pool, cache and process metrics through
 Actuator. Health details are no longer returned to anonymous callers.
 
+The ingestion scheduler exposes its run status, last successful timestamp, duration,
+next scheduled timestamp and insert/update/skip counts at `ingestion-scheduler:9101/metrics`.
+Prometheus evaluates the rules in `monitoring/prometheus/rules/ingestion-alerts.yml` for
+scheduler availability, failed runs and stale historical data. Immediate failure and recovery
+notifications can also be sent to the generic JSON endpoint configured by
+`INGESTION_ALERT_WEBHOOK_URL`.
+
 ## Running monitoring locally
 
 Start the application and the optional monitoring profile:

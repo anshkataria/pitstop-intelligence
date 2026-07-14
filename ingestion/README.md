@@ -12,14 +12,35 @@ Run it manually from the project root:
 `SEASONS_TO_FETCH` in the root `.env` controls the imported seasons. Existing domain rows are
 updated through PostgreSQL upserts, so rerunning the same seasons does not create duplicates.
 
-## Scheduling with cron
+## Container scheduling
 
-The wrapper script is suitable for host cron or another scheduler. For example, this runs every
-Monday at 03:00 and appends output to a local log:
+The normal Compose stack includes an `ingestion-scheduler` container. By default it runs every
+Monday at 03:00 UTC. Configure it in the root `.env`:
 
-```cron
-0 3 * * 1 cd /absolute/path/to/pitstop-intelligence && ./scripts/run-ingestion.sh >> ingestion.log 2>&1
+```dotenv
+INGESTION_CRON=0 3 * * 1
+INGESTION_TIMEZONE=Australia/Brisbane
+INGESTION_RUN_ON_STARTUP=false
 ```
+
+The supported cron shape is `minute hour * * weekday`; use `*` for the weekday to run daily.
+Cron weekdays follow the usual `0=Sunday` through `6=Saturday` convention. Runs execute in one
+thread, so a long-running import cannot overlap the next scheduled invocation.
+
+Set `INGESTION_RUN_ON_STARTUP=true` when a newly deployed scheduler should import immediately.
+Manual runs through `./scripts/run-ingestion.sh` remain available independently.
+
+## Metrics and alerts
+
+The scheduler publishes Prometheus metrics internally on port `9101`, including its next run,
+last success, duration, status and record counts. The monitoring profile loads alerts for:
+
+- a scheduler that cannot be scraped for ten minutes;
+- a failed or partially completed run;
+- more than eight days without a successful run.
+
+Set `INGESTION_ALERT_WEBHOOK_URL` to receive immediate generic JSON notifications for failures,
+partial runs and recovery. Alert delivery failures are logged but never terminate the scheduler.
 
 Each invocation creates an `ingestion_runs` record containing timing, requested and failed seasons,
 insert/update/skip counts, status, and a concise error summary.

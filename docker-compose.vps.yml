@@ -12,6 +12,9 @@ services:
   ingestion:
     image: ghcr.io/${GHCR_REPOSITORY:?Set GHCR_REPOSITORY}-ingestion:${IMAGE_TAG:?Set IMAGE_TAG}
 
+  ingestion-scheduler:
+    image: ghcr.io/${GHCR_REPOSITORY:?Set GHCR_REPOSITORY}-ingestion:${IMAGE_TAG:?Set IMAGE_TAG}
+
   gateway:
     image: caddy:2-alpine
     container_name: pitstop-gateway

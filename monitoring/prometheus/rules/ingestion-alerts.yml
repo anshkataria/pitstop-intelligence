@@ -1,0 +1,32 @@
+groups:
+  - name: pitstop-ingestion
+    rules:
+      - alert: IngestionSchedulerDown
+        expr: up{job="historical-ingestion"} == 0
+        for: 10m
+        labels:
+          severity: critical
+          service: ingestion
+        annotations:
+          summary: Historical ingestion scheduler is unavailable
+          description: Prometheus has been unable to scrape the ingestion scheduler for 10 minutes.
+
+      - alert: IngestionRunFailed
+        expr: pitstop_ingestion_last_run_success == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: ingestion
+        annotations:
+          summary: The latest historical ingestion run failed
+          description: The most recent ingestion run failed or completed only partially. Inspect the scheduler logs and ingestion_runs table.
+
+      - alert: IngestionDataStale
+        expr: (pitstop_ingestion_last_success_timestamp_seconds > 0 and (time() - pitstop_ingestion_last_success_timestamp_seconds) > 691200) or (pitstop_ingestion_last_success_timestamp_seconds == 0 and (time() - pitstop_ingestion_scheduler_started_timestamp_seconds) > 691200)
+        for: 15m
+        labels:
+          severity: warning
+          service: ingestion
+        annotations:
+          summary: No successful historical ingestion for eight days
+          description: The weekly ingestion schedule has missed its expected success window.

@@ -57,6 +57,11 @@ Run historical ingestion when required:
 docker compose --profile ingestion run --rm ingestion
 ```
 
+The always-on `ingestion-scheduler` runs the same pipeline automatically. Its default schedule is
+Monday at 03:00 UTC; set `INGESTION_CRON`, `INGESTION_TIMEZONE` and optionally
+`INGESTION_RUN_ON_STARTUP` in `.env`. Scheduled and manual runs are both recorded in
+`ingestion_runs`.
+
 Add Prometheus and Grafana with:
 
 ```bash

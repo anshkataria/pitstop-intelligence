@@ -72,6 +72,15 @@ services:
           cpus: "0.75"
           memory: 512M
 
+  ingestion-scheduler:
+    restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+
   prometheus:
     restart: unless-stopped
     logging: *default-logging

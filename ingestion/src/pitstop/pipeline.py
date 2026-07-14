@@ -1,6 +1,7 @@
 import logging
 import sys
 import time
+from dataclasses import dataclass
 
 from pitstop import loaders
 from pitstop.config import load_config
@@ -18,7 +19,17 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def run() -> None:
+@dataclass(frozen=True)
+class PipelineResult:
+    run_id: int
+    status: str
+    stats: LoadStats
+    failed_seasons: list[int]
+    duration_seconds: float
+
+
+def run() -> PipelineResult:
+    started_at = time.monotonic()
     config = load_config()
     logger.info("Starting ingestion for seasons: %s", config.ergast.seasons)
     run_id = start_run(config.db, config.ergast.seasons)
@@ -49,10 +60,13 @@ def run() -> None:
             "Ingestion %s — inserted: %d, updated: %d, skipped: %d, failed seasons: %s",
             status, total.inserted, total.updated, total.skipped, failed_seasons or "none",
         )
-        if failed_seasons:
-            raise SystemExit(1)
-    except SystemExit:
-        raise
+        return PipelineResult(
+            run_id=run_id,
+            status=status,
+            stats=total,
+            failed_seasons=failed_seasons,
+            duration_seconds=time.monotonic() - started_at,
+        )
     except Exception as exc:
         logger.critical("Ingestion run failed: %s", exc, exc_info=True)
         fail_run(config.db, run_id, f"{type(exc).__name__}: {exc}")
@@ -62,4 +76,6 @@ def run() -> None:
 
 
 if __name__ == "__main__":
-    run()
+    result = run()
+    if result.status != "SUCCESS":
+        raise SystemExit(1)
