@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
-import { PredictionRunDetail, PredictionRunSummary } from '../../core/models/prediction.model';
+import { forkJoin } from 'rxjs';
+import { PredictionEvaluation, PredictionEvaluationResult, PredictionRunDetail, PredictionRunSummary } from '../../core/models/prediction.model';
 import { PredictionService } from '../../core/services/prediction.service';
 import { IntelligenceShellComponent } from '../../shared/components/intelligence-shell/intelligence-shell.component';
 
@@ -9,16 +10,30 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
   imports: [DatePipe, IntelligenceShellComponent],
   template: `<app-intelligence-shell><section class="screen"><header class="screen-head"><div><p class="eyebrow">MODEL ARCHIVE</p><h1>Prediction History</h1><p>Every stored forecast, model version and confidence range.</p></div></header>
     <div class="layout"><article class="card runs"><h2>RECENT RUNS</h2>@if(loading()){<div class="state">Loading prediction history…</div>}@for(run of runs();track run.id){<button type="button" [class.active]="selected()?.id===run.id" (click)="open(run)"><span>#{{run.id}}</span><p><strong>{{run.circuitName}}</strong><small>{{run.seasonYear}} · Round {{run.round}} · {{run.createdAt|date:'medium'}}</small></p><b>{{run.resultCount}}</b></button>}@empty{<div class="state">No prediction runs have been stored yet.</div>}</article>
-    <article class="card detail"><h2>PREDICTED CLASSIFICATION</h2>@if(selected();as run){<div class="meta"><span>RUN #{{run.id}}</span><span>MODEL {{shortVersion(run.modelVersion)}}</span></div>@for(result of run.results;track result.driverRef){<div class="result"><b>{{result.predictedPositionRounded}}</b><p><strong>{{result.driverRef.toUpperCase()}}</strong><small>{{result.constructorRef}} · Grid {{result.gridPosition}}</small></p><em>{{result.confidenceRangeLow}}–{{result.confidenceRangeHigh}}</em></div>}}@else{<div class="state">Select a prediction run to inspect it.</div>}</article></div>
+    <article class="card detail"><h2>PREDICTION EVALUATION</h2>@if(selected();as run){<div class="meta"><span>RUN #{{run.id}}</span><span>MODEL {{shortVersion(run.modelVersion)}}</span></div>@if(evaluation();as score){@if(score.status==='PENDING'){<div class="pending"><strong>AWAITING CLASSIFICATION</strong><span>Metrics appear when official race results are ingested.</span></div>}@else{<div class="metrics"><div><span>MAE</span><strong>{{score.meanAbsoluteError}}</strong></div><div><span>RMSE</span><strong>{{score.rootMeanSquaredError}}</strong></div><div><span>EXACT</span><strong>{{score.exactMatchRate}}%</strong></div><div><span>IN RANGE</span><strong>{{score.confidenceCoverage}}%</strong></div></div><p class="coverage">{{score.evaluatedCount}} of {{score.predictionCount}} drivers evaluated · {{score.status}}</p>}}<h2 class="classification">PREDICTED VS ACTUAL</h2>@for(result of run.results;track result.driverRef){<div class="result"><b>{{result.predictedPositionRounded}}</b><p><strong>{{result.driverRef.toUpperCase()}}</strong><small>{{result.constructorRef}} · Grid {{result.gridPosition}}</small></p>@if(evaluationFor(result.driverRef);as actual){<span class="actual"><small>ACTUAL</small><b>{{actual.actualPosition}}</b></span><em [class.hit]="actual.withinConfidenceRange">±{{actual.absoluteError}}</em>}@else{<span class="actual muted-value">—</span><em>{{result.confidenceRangeLow}}–{{result.confidenceRangeHigh}}</em>}</div>}}@else{<div class="state">Select a prediction run to inspect it.</div>}</article></div>
   </section></app-intelligence-shell>`,
-  styles: [`.layout{display:grid;grid-template-columns:.9fr 1.1fr;gap:18px}.layout>article{padding:22px}.runs button{width:100%;display:grid;grid-template-columns:42px 1fr 25px;align-items:center;gap:10px;min-height:62px;padding:8px 10px;border:0;border-bottom:1px solid #eee;background:#fff;text-align:left;cursor:pointer}.runs button.active{background:#fff6f6}.runs button>span,.runs button>b,.meta{font:500 9px var(--ps-font-mono)}.runs p,.result p{margin:0}.runs strong,.runs small,.result strong,.result small{display:block}.runs small,.result small{margin-top:4px;color:#777;font-size:8px}.meta{display:flex;justify-content:space-between;padding:12px 0 15px;color:#777}.result{display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:10px;min-height:53px;border-bottom:1px solid #eee}.result>b{display:grid;place-items:center;width:29px;height:29px;border-radius:50%;background:#171819;color:#fff;font:500 10px var(--ps-font-mono)}.result>em{color:#d92332;font:500 10px var(--ps-font-mono);font-style:normal}.state{display:grid;place-items:center;min-height:240px;color:#777;font-size:10px}@media(max-width:800px){.layout{grid-template-columns:1fr}}`],
+  styles: [`.layout{display:grid;grid-template-columns:.9fr 1.1fr;gap:18px}.layout>article{padding:22px}.runs button{width:100%;display:grid;grid-template-columns:42px 1fr 25px;align-items:center;gap:10px;min-height:62px;padding:8px 10px;border:0;border-bottom:1px solid #eee;background:#fff;text-align:left;cursor:pointer}.runs button.active{background:#fff6f6}.runs button>span,.runs button>b,.meta{font:500 9px var(--ps-font-mono)}.runs p,.result p{margin:0}.runs strong,.runs small,.result strong,.result small{display:block}.runs small,.result small{margin-top:4px;color:#777;font-size:8px}.meta{display:flex;justify-content:space-between;padding:12px 0 15px;color:#777}.metrics{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #e6e6e6;border-radius:6px}.metrics div{padding:13px;border-right:1px solid #eee}.metrics div:last-child{border:0}.metrics span,.metrics strong{display:block}.metrics span{color:#777;font:500 7px var(--ps-font-mono)}.metrics strong{margin-top:7px;font:500 18px var(--ps-font-heading)}.coverage{margin:9px 0 20px;color:#777;font:500 8px var(--ps-font-mono)}.pending{padding:20px;margin-bottom:20px;background:#f4f3ef;border-radius:6px}.pending strong,.pending span{display:block}.pending strong{font:600 8px var(--ps-font-mono)}.pending span{margin-top:7px;color:#777;font-size:9px}.classification{padding-top:4px}.result{display:grid;grid-template-columns:32px 1fr 42px 45px;align-items:center;gap:10px;min-height:58px;border-bottom:1px solid #eee}.result>b{display:grid;place-items:center;width:29px;height:29px;border-radius:50%;background:#171819;color:#fff;font:500 10px var(--ps-font-mono)}.actual small,.actual b{display:block;text-align:center}.actual small{color:#888;font:500 6px var(--ps-font-mono)}.actual b{margin-top:3px;font:600 11px var(--ps-font-mono)}.muted-value{color:#aaa;text-align:center}.result>em{color:#d92332;font:500 9px var(--ps-font-mono);font-style:normal;text-align:right}.result>em.hit{color:#27704a}.state{display:grid;place-items:center;min-height:240px;color:#777;font-size:10px}@media(max-width:800px){.layout{grid-template-columns:1fr}}@media(max-width:460px){.metrics{grid-template-columns:1fr 1fr}.metrics div:nth-child(2){border-right:0}.metrics div:nth-child(-n+2){border-bottom:1px solid #eee}}`],
 })
 export class PredictionHistoryComponent {
   private readonly service = inject(PredictionService);
   readonly runs = signal<PredictionRunSummary[]>([]);
   readonly selected = signal<PredictionRunDetail | null>(null);
+  readonly evaluation = signal<PredictionEvaluation | null>(null);
   readonly loading = signal(true);
   constructor() { this.service.getHistory().subscribe({ next: (runs) => { this.runs.set(runs); this.loading.set(false); if (runs[0]) this.open(runs[0]); }, error: () => this.loading.set(false) }); }
-  open(run: PredictionRunSummary): void { this.service.getHistoryRun(run.id).subscribe((detail) => this.selected.set(detail)); }
+  open(run: PredictionRunSummary): void {
+    this.selected.set(null);
+    this.evaluation.set(null);
+    forkJoin({
+      detail: this.service.getHistoryRun(run.id),
+      evaluation: this.service.getEvaluation(run.id),
+    }).subscribe(({ detail, evaluation }) => {
+      this.selected.set(detail);
+      this.evaluation.set(evaluation);
+    });
+  }
+  evaluationFor(driverRef: string): PredictionEvaluationResult | undefined {
+    return this.evaluation()?.results.find((result) => result.driverRef === driverRef);
+  }
   shortVersion(version: string): string { return version && version !== 'unknown' ? version.slice(0, 8) : 'unknown'; }
 }

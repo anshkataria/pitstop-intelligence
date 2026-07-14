@@ -4,6 +4,7 @@ import com.pitstop.backend.dto.PredictionContextDto;
 import com.pitstop.backend.service.PredictionContextService;
 import com.pitstop.backend.dto.PredictionRunDetailDto;
 import com.pitstop.backend.dto.PredictionRunSummaryDto;
+import com.pitstop.backend.dto.PredictionEvaluationDto;
 import com.pitstop.backend.service.PredictionHistoryService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -32,5 +33,10 @@ public class PredictionContextController {
     @GetMapping("/history/{id}")
     public ResponseEntity<PredictionRunDetailDto> historyDetail(@PathVariable Long id) {
         return ResponseEntity.ok(historyService.findById(id));
+    }
+
+    @GetMapping("/history/{id}/evaluation")
+    public ResponseEntity<PredictionEvaluationDto> evaluation(@PathVariable Long id) {
+        return ResponseEntity.ok(historyService.evaluate(id));
     }
 }

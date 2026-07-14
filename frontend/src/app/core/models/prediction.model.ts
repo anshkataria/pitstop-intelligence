@@ -51,3 +51,24 @@ export interface PredictionRunSummary {
 export interface PredictionRunDetail extends Omit<PredictionRunSummary, 'resultCount'> {
   results: PredictionResult[];
 }
+
+export interface PredictionEvaluationResult {
+  driverRef: string;
+  predictedPosition: number;
+  actualPosition: number;
+  absoluteError: number;
+  exactMatch: boolean;
+  withinConfidenceRange: boolean;
+}
+
+export interface PredictionEvaluation {
+  predictionRunId: number;
+  status: 'PENDING' | 'PARTIAL' | 'COMPLETE';
+  predictionCount: number;
+  evaluatedCount: number;
+  meanAbsoluteError: number | null;
+  rootMeanSquaredError: number | null;
+  exactMatchRate: number | null;
+  confidenceCoverage: number | null;
+  results: PredictionEvaluationResult[];
+}

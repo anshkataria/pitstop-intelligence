@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { PredictionContext, PredictionEntry, PredictionResponse, PredictionRunDetail, PredictionRunSummary } from '../models/prediction.model';
+import { PredictionContext, PredictionEntry, PredictionEvaluation, PredictionResponse, PredictionRunDetail, PredictionRunSummary } from '../models/prediction.model';
 import { API_URL } from '../tokens/api.tokens';
 
 @Injectable({ providedIn: 'root' })
@@ -58,5 +58,11 @@ export class PredictionService {
 
   getHistoryRun(id: number): Observable<PredictionRunDetail> {
     return this.http.get<PredictionRunDetail>(`${this.apiUrl}/v1/predictions/history/${id}`);
+  }
+
+  getEvaluation(id: number): Observable<PredictionEvaluation> {
+    return this.http.get<PredictionEvaluation>(
+      `${this.apiUrl}/v1/predictions/history/${id}/evaluation`,
+    );
   }
 }
