@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { LucideAngularModule, House, ChartNoAxesCombined, Target, UserRound, CalendarDays, LogOut, UsersRound, Settings } from 'lucide-angular';
+import { LucideAngularModule, House, ChartNoAxesCombined, Target, UserRound, CalendarDays, LogOut, UsersRound, Settings, Radio } from 'lucide-angular';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -16,6 +16,7 @@ export class IntelligenceShellComponent {
   readonly settingsIcon = Settings;
   readonly menu = [
     { icon: House, label: 'Overview', path: '/dashboard' }, { icon: CalendarDays, label: 'Races', path: '/races' },
+    { icon: Radio, label: 'Live Intelligence', path: '/live' },
     { icon: ChartNoAxesCombined, label: 'Race Analysis', path: '/race-analysis' }, { icon: Target, label: 'Predictions', path: '/predictions' },
     { icon: UserRound, label: 'Drivers', path: '/drivers' },
     { icon: UsersRound, label: 'Teams', path: '/teams' },

@@ -1,0 +1,272 @@
+.live-screen {
+  max-width: 1440px;
+}
+.screen-head select {
+  height: 44px;
+  max-width: 330px;
+  padding: 0 13px;
+  border: 1px solid #d8d9da;
+  border-radius: 6px;
+  background: #fff;
+}
+.eyebrow i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: #a1a3a7;
+}
+.eyebrow i.connected {
+  background: #2d7d5b;
+  box-shadow: 0 0 0 4px #2d7d5b1c;
+}
+.session-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin-bottom: 18px;
+  border: 1px solid #dedede;
+  border-radius: 8px;
+  background: #fff;
+}
+.session-strip div {
+  padding: 17px 20px;
+  border-right: 1px solid #eee;
+}
+.session-strip div:last-child {
+  border: 0;
+}
+.session-strip small,
+.session-strip strong {
+  display: block;
+}
+.session-strip small {
+  color: #777;
+  font: 500 8px var(--ps-font-mono);
+}
+.session-strip strong {
+  margin-top: 8px;
+  font-size: 12px;
+}
+.live-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 18px;
+}
+.live-grid > article {
+  padding: 22px;
+}
+.timing {
+  grid-row: span 2;
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-head p,
+.card-head > span {
+  color: #777;
+  font-size: 9px;
+}
+.timing-row {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 25px 4px 45px 1fr 72px 35px;
+  align-items: center;
+  gap: 9px;
+  min-height: 47px;
+  padding: 0 8px;
+  border: 0;
+  border-bottom: 1px solid #eee;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.timing-row:hover,
+.timing-row.selected {
+  background: #f7f7f5;
+}
+.timing-row b,
+.timing-row strong,
+.timing-row em,
+.timing-row small {
+  font: 500 9px var(--ps-font-mono);
+  font-style: normal;
+}
+.timing-row span {
+  color: #666;
+  font-size: 9px;
+}
+.timing-row em {
+  text-align: right;
+}
+.weather-value {
+  margin: 30px 0;
+}
+.weather-value strong,
+.weather-value span {
+  display: block;
+}
+.weather-value strong {
+  font: 500 40px var(--ps-font-mono);
+}
+.weather-value span {
+  margin-top: 5px;
+  color: #777;
+  font-size: 9px;
+}
+.weather-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.weather-grid span,
+.weather-grid b {
+  display: block;
+  font-size: 9px;
+}
+.weather-grid span {
+  color: #777;
+}
+.weather-grid b {
+  margin-top: 4px;
+  color: #171819;
+}
+.telemetry {
+  min-width: 0;
+}
+.car-state {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 14px 0;
+}
+.car-state span {
+  padding: 8px;
+  border: 1px solid #eee;
+  color: #777;
+  font: 500 7px var(--ps-font-mono);
+}
+.car-state b {
+  display: block;
+  margin-top: 5px;
+  color: #171819;
+  font-size: 9px;
+}
+.stint,
+.pit {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+.stint b,
+.pit b,
+.stint span,
+.pit span {
+  font: 600 9px var(--ps-font-mono);
+}
+.stint small {
+  grid-column: 1 / 3;
+  color: #888;
+  font-size: 8px;
+}
+.intelligence,
+.control {
+  grid-column: span 1;
+}
+.model-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 18px;
+}
+.model-grid > div {
+  padding: 15px;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+}
+.model-grid small,
+.model-grid strong,
+.model-grid span {
+  display: block;
+}
+.model-grid small {
+  color: #777;
+  font: 500 8px var(--ps-font-mono);
+}
+.model-grid strong {
+  margin: 9px 0;
+  font: 500 20px var(--ps-font-mono);
+}
+.model-grid span {
+  color: #777;
+  font-size: 8px;
+}
+.control-row {
+  display: flex;
+  gap: 11px;
+  padding: 11px 0;
+  border-bottom: 1px solid #eee;
+}
+.control-row > span {
+  align-self: flex-start;
+  padding: 4px 6px;
+  border-radius: 3px;
+  background: #eee;
+  font: 600 7px var(--ps-font-mono);
+}
+.control-row > span.alert {
+  background: #fff0c9;
+  color: #80520a;
+}
+.control-row p {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.control-row small {
+  display: block;
+  margin-top: 4px;
+  color: #888;
+  font-size: 8px;
+}
+.empty,
+.state {
+  padding: 45px;
+  text-align: center;
+  color: #888;
+  font-size: 10px;
+}
+@media (max-width: 900px) {
+  .live-grid {
+    grid-template-columns: 1fr;
+  }
+  .timing {
+    grid-row: auto;
+  }
+  .session-strip {
+    grid-template-columns: 1fr 1fr;
+  }
+  .intelligence,
+  .control {
+    grid-column: auto;
+  }
+}
+@media (max-width: 560px) {
+  .session-strip {
+    grid-template-columns: 1fr;
+  }
+  .session-strip div {
+    border-right: 0;
+    border-bottom: 1px solid #eee;
+  }
+  .timing-row {
+    grid-template-columns: 22px 3px 40px 1fr 48px;
+  }
+  .timing-row span {
+    display: none;
+  }
+}
