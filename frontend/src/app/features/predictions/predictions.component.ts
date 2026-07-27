@@ -110,14 +110,14 @@ import { SeasonService } from '../../core/services/season.service';
     `
       .health {
         padding: 9px 12px;
-        border: 1px solid #ddd;
+        border: 1px solid var(--ps-border-strong);
         border-radius: 18px;
-        color: #777;
+        color: var(--ps-text-secondary);
         font: 500 9px var(--ps-font-mono);
       }
-      .history-link { margin-right: 14px; color: #555; font-size: 10px; text-decoration: none; }
+      .history-link { margin-right: 14px; color: var(--ps-text-secondary); font-size: 10px; text-decoration: none; }
       .health.online {
-        color: #2d7d5b;
+        color: var(--ps-green);
       }
       .prediction-layout {
         display: grid;
@@ -135,7 +135,7 @@ import { SeasonService } from '../../core/services/season.service';
       }
       .selectors label {
         font-size: 9px;
-        color: #666;
+        color: var(--ps-text-secondary);
       }
       .selectors select {
         display: block;
@@ -143,9 +143,9 @@ import { SeasonService } from '../../core/services/season.service';
         height: 42px;
         margin-top: 7px;
         padding: 0 10px;
-        border: 1px solid #dedfe0;
-        border-radius: 5px;
-        background: #fff;
+        border: 1px solid var(--ps-border-strong);
+        border-radius: var(--ps-radius-sm);
+        background: var(--ps-surface);
       }
       .grid-head,
       .output-head {
@@ -156,7 +156,7 @@ import { SeasonService } from '../../core/services/season.service';
       .grid-head span,
       .output-head span {
         font: 500 8px var(--ps-font-mono);
-        color: #777;
+        color: var(--ps-text-secondary);
       }
       .entries {
         margin-top: 12px;
@@ -180,7 +180,7 @@ import { SeasonService } from '../../core/services/season.service';
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        background: #161718;
+        background: var(--ps-text);
         color: #fff;
         font: 600 8px var(--ps-font-mono);
       }
@@ -194,15 +194,15 @@ import { SeasonService } from '../../core/services/season.service';
       }
       .entry small {
         margin-top: 3px;
-        color: #777;
+        color: var(--ps-text-secondary);
         font-size: 8px;
       }
       .entry button {
         width: 27px;
         height: 26px;
         padding: 0;
-        border: 1px solid #ddd;
-        background: #fff;
+        border: 1px solid var(--ps-border-strong);
+        background: var(--ps-surface);
       }
       .entry button:disabled {
         opacity: 0.3;
@@ -211,7 +211,7 @@ import { SeasonService } from '../../core/services/season.service';
         margin-top: 18px;
       }
       .error {
-        color: #d92332;
+        color: var(--ps-red);
         font-size: 10px;
       }
       .state,
@@ -219,7 +219,7 @@ import { SeasonService } from '../../core/services/season.service';
         display: grid;
         place-items: center;
         min-height: 280px;
-        color: #888;
+        color: var(--ps-text-secondary);
         font-size: 10px;
       }
       .result {
@@ -228,7 +228,7 @@ import { SeasonService } from '../../core/services/season.service';
         align-items: center;
         gap: 10px;
         padding: 14px 0;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid var(--ps-border);
       }
       .result > span {
         display: grid;
@@ -236,7 +236,7 @@ import { SeasonService } from '../../core/services/season.service';
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        background: #151515;
+        background: var(--ps-text);
         color: #fff;
         font: 500 11px var(--ps-font-mono);
       }
@@ -249,12 +249,12 @@ import { SeasonService } from '../../core/services/season.service';
       }
       .result small {
         margin-top: 3px;
-        color: #777;
+        color: var(--ps-text-secondary);
         font-size: 9px;
       }
       .result > b {
         font: 500 11px var(--ps-font-mono);
-        color: #d92332;
+        color: var(--ps-red);
       }
       @media (max-width: 850px) {
         .prediction-layout {

@@ -13,9 +13,9 @@ import { NavbarComponent } from '../../shared/components/navbar/navbar.component
         <div class="actions"><a routerLink="/dashboard" class="primary">Open Dashboard</a><a routerLink="/races" class="secondary">View Race Calendar</a></div>
       </div>
       <div class="race-strip">
-        <div><small>NEXT RACE</small><strong>Monaco Grand Prix</strong><span>Circuit de Monaco</span></div>
-        <div><small>RACE START</small><strong>26 May, 2024</strong><span>21:00 AEST</span></div>
-        <div><small>TRACK CONDITIONS</small><strong><span class="sun">☼</span> Dry &nbsp;&nbsp; <em>24°C</em></strong></div>
+        <div><small>SEASON COVERAGE</small><strong>2020 – 2026</strong><span>Full results, every round</span></div>
+        <div><small>LIVE INTELLIGENCE</small><strong>Timing &amp; strategy</strong><span>Telemetry as sessions run</span></div>
+        <div><small>PREDICTIONS</small><strong>Finishing order</strong><span>Modelled from race history</span></div>
       </div>
     </section>`,
   styleUrl: './home.component.scss',

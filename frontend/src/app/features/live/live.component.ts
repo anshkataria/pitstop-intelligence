@@ -23,9 +23,20 @@ import { LiveService } from '../../core/services/live.service';
           @for(row of timing();track row.driverNumber){<button type="button" class="timing-row" [class.selected]="row.driverNumber===selectedDriver()" (click)="selectDriver(row.driverNumber)"><b>{{row.position??'—'}}</b><i [style.background]="'#'+(row.teamColour||'555555')"></i><strong>{{row.driverCode||row.driverNumber}}</strong><span>{{row.teamName||row.fullName}}</span><em>{{row.gapToLeader||row.intervalToLeader||'—'}}</em><small>L{{row.lapNumber}}</small></button>}@empty{<div class="empty">No timing records have arrived.</div>}
         </article>
         <article class="card weather"><h2>TRACK CONDITIONS</h2>@if(latestWeather();as weather){<div class="weather-value"><strong>{{weather.trackTemperature??'—'}}°</strong><span>Track temperature</span></div><div class="weather-grid"><span>Air <b>{{weather.airTemperature??'—'}}°C</b></span><span>Humidity <b>{{weather.humidity??'—'}}%</b></span><span>Wind <b>{{weather.windSpeed??'—'}} m/s</b></span><span>Rain <b>{{weather.rainfall?'Detected':'Clear'}}</b></span></div>}@else{<div class="empty">No weather sample.</div>}</article>
-        <article class="card telemetry"><div class="card-head"><div><h2>CAR TELEMETRY</h2><p>{{selectedDriverName()}} · speed trace</p></div></div><div class="car-state"><span>GEAR <b>{{latestTelemetry()?.gear??'—'}}</b></span><span>RPM <b>{{latestTelemetry()?.rpm??'—'}}</b></span><span>DRS <b>{{drsState()}}</b></span><span>SPEED <b>{{latestTelemetry()?.speed??'—'}} km/h</b></span><span>LAST LAP <b>{{latestLap()?.lapDuration??'—'}} s</b></span></div><app-historical-line-chart [series]="speedSeries()" xLabel="Sample" yLabel="km/h" ariaLabel="Selected driver speed telemetry"/></article>
-        <article class="card telemetry"><div class="card-head"><div><h2>DRIVER INPUTS</h2><p>Throttle and brake application</p></div></div><app-historical-line-chart [series]="inputSeries()" xLabel="Sample" yLabel="Percent" ariaLabel="Selected driver throttle and brake telemetry"/></article>
-        <article class="card telemetry"><div class="card-head"><div><h2>SECTOR PERFORMANCE</h2><p>Sector durations by completed lap</p></div></div><app-historical-line-chart [series]="sectorSeries()" xLabel="Lap" yLabel="Seconds" ariaLabel="Selected driver sector time history"/></article>
+        <article class="card telemetry"><div class="card-head"><div><h2>DRIVER TELEMETRY</h2><p>{{selectedDriverName()}}</p></div>
+          <div class="tab-switch">
+            <button type="button" [class.active]="telemetryTab()==='speed'" (click)="telemetryTab.set('speed')">Speed</button>
+            <button type="button" [class.active]="telemetryTab()==='inputs'" (click)="telemetryTab.set('inputs')">Throttle / brake</button>
+            <button type="button" [class.active]="telemetryTab()==='sectors'" (click)="telemetryTab.set('sectors')">Sectors</button>
+          </div>
+        </div>
+        <div class="car-state"><span>GEAR <b>{{latestTelemetry()?.gear??'—'}}</b></span><span>RPM <b>{{latestTelemetry()?.rpm??'—'}}</b></span><span>DRS <b>{{drsState()}}</b></span><span>SPEED <b>{{latestTelemetry()?.speed??'—'}} km/h</b></span><span>LAST LAP <b>{{latestLap()?.lapDuration??'—'}} s</b></span></div>
+          @switch (telemetryTab()) {
+            @case ('speed') { <app-historical-line-chart [series]="speedSeries()" xLabel="Sample" yLabel="km/h" ariaLabel="Selected driver speed telemetry"/> }
+            @case ('inputs') { <app-historical-line-chart [series]="inputSeries()" xLabel="Sample" yLabel="Percent" ariaLabel="Selected driver throttle and brake telemetry"/> }
+            @case ('sectors') { <app-historical-line-chart [series]="sectorSeries()" xLabel="Lap" yLabel="Seconds" ariaLabel="Selected driver sector time history"/> }
+          }
+        </article>
         <article class="card strategy-feed"><h2>STINTS & PIT STOPS</h2>@for(stint of selectedStints();track stint.stintNumber){<div class="stint"><b>{{stint.compound||'UNKNOWN'}}</b><span>L{{stint.lapStart??'—'}}–{{stint.lapEnd??'current'}}</span><small>Start age {{stint.tyreAgeAtStart??0}} laps</small></div>}@for(pit of selectedPits();track pit.lapNumber){<div class="pit"><b>PIT · L{{pit.lapNumber}}</b><span>{{pit.stopDuration??pit.laneDuration??'—'}} s</span></div>}@empty{<div class="empty">No pit-stop events.</div>}</article>
         <article class="card intelligence"><h2>LIVE MODELS</h2><div class="model-grid">@for(item of selectedIntelligence();track item.modelType){<div><small>{{modelLabel(item.modelType)}}</small><strong>{{modelValue(item)}}</strong><span>{{item.confidence*100|number:'1.0-0'}}% confidence</span></div>}@empty{<div class="empty">Waiting for sufficient telemetry.</div>}</div></article>
         <article class="card control"><h2>RACE CONTROL</h2>@for(message of raceControl().slice(0,8);track message.occurredAt+message.message){<div class="control-row"><span [class.alert]="message.flag">{{message.flag||message.category||'INFO'}}</span><p>{{message.message}}<small>{{message.occurredAt|date:'HH:mm:ss'}} · Lap {{message.lapNumber??'—'}}</small></p></div>}@empty{<div class="empty">No race-control messages.</div>}</article>
@@ -42,6 +53,7 @@ export class LiveComponent implements OnDestroy {
   readonly laps = signal<LiveLap[]>([]); readonly stints = signal<LiveStint[]>([]); readonly pitStops = signal<LivePitStop[]>([]);
   readonly telemetry = signal<LiveTelemetryPoint[]>([]); readonly selectedDriver = signal<number|null>(null);
   readonly loading = signal(true); readonly error = signal(''); readonly connected = signal(false);
+  readonly telemetryTab = signal<'speed' | 'inputs' | 'sectors'>('speed');
   readonly lastUpdated = signal(new Date()); private streamController?: AbortController; private refreshTimer?: ReturnType<typeof setTimeout>; private reconnectTimer?: ReturnType<typeof setTimeout>;
   readonly activeSession = computed(()=>this.sessions().find(s=>s.sessionKey===this.sessionKey())??null);
   readonly latestWeather = computed(()=>this.weather().at(-1)??null);

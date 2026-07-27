@@ -56,9 +56,9 @@ import { SeasonService } from '../../core/services/season.service';
         min-width: 150px;
         height: 44px;
         padding: 0 14px;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        background: #fff;
+        border: 1px solid var(--ps-border-strong);
+        border-radius: var(--ps-radius-input);
+        background: var(--ps-surface);
       }
       .race-grid {
         display: grid;
@@ -79,7 +79,7 @@ import { SeasonService } from '../../core/services/season.service';
       }
       .round {
         font: 600 9px var(--ps-font-mono);
-        color: #d92332;
+        color: var(--ps-red);
       }
       .race h2 {
         margin: 18px 0 7px;
@@ -87,19 +87,20 @@ import { SeasonService } from '../../core/services/season.service';
       }
       .race p {
         min-height: 35px;
-        color: #777;
+        color: var(--ps-text-secondary);
         font-size: 11px;
       }
       .race footer {
         display: flex;
         justify-content: space-between;
         padding-top: 16px;
-        border-top: 1px solid #eee;
+        border-top: 1px solid var(--ps-border);
         font-size: 10px;
       }
       .state {
         padding: 60px;
         text-align: center;
+        color: var(--ps-text-secondary);
       }
       @media (max-width: 1000px) {
         .race-grid {

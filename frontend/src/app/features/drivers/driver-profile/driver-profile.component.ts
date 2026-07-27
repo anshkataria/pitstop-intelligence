@@ -45,9 +45,6 @@ import {
             }
           </select>
         </header>
-        <nav class="tabs">
-          <a class="active">Overview</a><a>Stats</a><a>Performance</a><a>Career</a>
-        </nav>
         <div class="profile-grid">
           <article class="card season">
             <h2>{{ season }} Season</h2>
@@ -103,7 +100,7 @@ import {
         align-items: center;
         gap: 8px;
         margin-bottom: 20px;
-        color: #333;
+        color: var(--ps-text-secondary);
         text-decoration: none;
         font-size: 12px;
       }
@@ -112,6 +109,7 @@ import {
         align-items: center;
         gap: 26px;
         padding: 30px;
+        margin-bottom: 18px;
       }
       .portrait {
         display: grid;
@@ -119,7 +117,7 @@ import {
         width: 120px;
         height: 120px;
         border-radius: 60px 60px 12px 12px;
-        background: linear-gradient(145deg, #ff8c1a, #d92332);
+        background: linear-gradient(145deg, var(--ps-text-secondary), var(--ps-text));
         color: #fff;
         font: 600 28px var(--ps-font-mono);
       }
@@ -130,29 +128,14 @@ import {
       .profile-hero p {
         display: flex;
         align-items: center;
-        color: #666;
+        color: var(--ps-text-secondary);
       }
       .profile-hero .identity { flex: 1; }
-      .profile-hero select { height: 42px; padding: 0 13px; border: 1px solid #ddd; border-radius: 6px; background: #fff; }
-      .tabs {
-        display: flex;
-        gap: 34px;
-        padding: 0 20px;
-        border-bottom: 1px solid #ddd;
-      }
-      .tabs a {
-        padding: 18px 0;
-        font-size: 11px;
-      }
-      .tabs .active {
-        color: #d92332;
-        border-bottom: 2px solid #d92332;
-      }
+      .profile-hero select { height: 42px; padding: 0 13px; border: 1px solid var(--ps-border-strong); border-radius: var(--ps-radius-input); background: var(--ps-surface); }
       .profile-grid {
         display: grid;
         grid-template-columns: 1.3fr 0.7fr;
         gap: 18px;
-        margin-top: 18px;
       }
       .profile-grid article {
         padding: 22px;
@@ -164,7 +147,7 @@ import {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         margin: 30px 0;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid var(--ps-border);
       }
       .big-stats div {
         padding-bottom: 22px;
@@ -178,10 +161,11 @@ import {
       }
       .big-stats span {
         font-size: 10px;
+        color: var(--ps-text-secondary);
       }
       .small-stats {
         font-size: 11px;
-        color: #777;
+        color: var(--ps-text-secondary);
       }
       .performance {
         grid-column: 1/3;

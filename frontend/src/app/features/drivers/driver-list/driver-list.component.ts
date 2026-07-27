@@ -93,8 +93,8 @@ import {
         flex: 1;
         height: 42px;
         padding: 0 14px;
-        border: 1px solid #dedfe0;
-        border-radius: 6px;
+        border: 1px solid var(--ps-border-strong);
+        border-radius: var(--ps-radius-input);
       }
       .toolbar input {
         width: 100%;
@@ -105,8 +105,8 @@ import {
       .count {
         padding: 8px 12px;
         border-radius: 20px;
-        background: #fff;
-        border: 1px solid #ddd;
+        background: var(--ps-surface);
+        border: 1px solid var(--ps-border-strong);
         font-size: 11px;
       }
       .table-card {
@@ -120,12 +120,12 @@ import {
       td {
         padding: 15px 18px;
         text-align: left;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid var(--ps-border);
         font-size: 12px;
       }
       th {
         font: 500 9px var(--ps-font-mono);
-        color: #666;
+        color: var(--ps-text-secondary);
       }
       .avatar {
         display: inline-grid;
@@ -134,12 +134,12 @@ import {
         height: 34px;
         margin-right: 12px;
         border-radius: 50%;
-        background: #161718;
+        background: var(--ps-text);
         color: #fff;
         font: 600 9px var(--ps-font-mono);
       }
       td a {
-        color: #d92332;
+        color: var(--ps-red);
         text-decoration: none;
       }
       .mono {
@@ -148,7 +148,7 @@ import {
       .state {
         padding: 70px;
         text-align: center;
-        color: #777;
+        color: var(--ps-text-secondary);
       }
       .pagination {
         display: flex;
@@ -160,8 +160,8 @@ import {
       .pagination button {
         width: 34px;
         height: 32px;
-        background: #fff;
-        border: 1px solid #ddd;
+        background: var(--ps-surface);
+        border: 1px solid var(--ps-border-strong);
       }
       .pagination button:disabled {
         opacity: 0.35;

@@ -6,11 +6,19 @@ import { DashboardSummary } from '../../core/models/dashboard.model';
 import { IntelligenceShellComponent } from '../../shared/components/intelligence-shell/intelligence-shell.component';
 import { SeasonService } from '../../core/services/season.service';
 import { RaceService } from '../../core/services/race.service';
+import { StandingsService } from '../../core/services/standings.service';
+import { ConstructorService } from '../../core/services/constructor.service';
+import { DriverStanding } from '../../core/models/standing.model';
+import { ConstructorStanding } from '../../core/models/constructor.model';
 import { RaceResult } from '../../core/models/race-result.model';
 import {
   HistoricalChartSeries,
   HistoricalLineChartComponent,
 } from '../../shared/components/charts/historical-line-chart.component';
+
+// Fixed-order categorical palette (validated for CVD-safe adjacency) — one hue per
+// series identity, never reassigned when the list changes.
+const SERIES_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
 
 @Component({
   selector: 'app-dashboard',
@@ -21,14 +29,8 @@ import {
       <header class="screen-head">
         <div>
           <p class="eyebrow">SEASON OVERVIEW</p>
-          <h1>{{ summary()?.race?.name || 'Dashboard' }}</h1>
-          <p>
-            @if (summary(); as s) {
-              Round {{ s.race.round }} · {{ s.race.circuitName }} · {{ s.race.raceDate }}
-            } @else {
-              Historical race intelligence
-            }
-          </p>
+          <h1>{{ season }} Season</h1>
+          <p>Standings, form and points trend through the latest round.</p>
         </div>
         <select [(ngModel)]="season" (ngModelChange)="load()">
           @for (year of seasons(); track year) {
@@ -41,77 +43,99 @@ import {
       } @else if (error()) {
         <div class="card state">{{ error() }}</div>
       } @else if (summary(); as s) {
-        <section class="metrics">
-          <article class="card">
-            <small>SEASON</small><strong>{{ s.seasonYear }}</strong>
+        <section class="stat-strip">
+          <article class="card stat">
+            <small>ROUNDS COMPLETED</small>
+            <strong>{{ s.raceCount }}</strong>
           </article>
-          <article class="card">
-            <small>ROUNDS</small><strong>{{ s.raceCount }}</strong>
+          <article class="card stat">
+            <small>CHAMPIONSHIP LEADER</small>
+            @if (leader(); as l) {
+              <strong>{{ l.driverName }}</strong>
+              <span>{{ l.points }} pts · {{ l.constructorName }}</span>
+            } @else {
+              <strong>—</strong>
+            }
           </article>
-          <article class="card">
-            <small>DRIVERS</small><strong>{{ s.driverCount }}</strong>
+          <article class="card stat">
+            <small>LEAD OVER P2</small>
+            @if (pointsGap(); as gap) {
+              <strong>+{{ gap }}</strong>
+              <span>pts vs {{ runnerUp()!.driverName }}</span>
+            } @else {
+              <strong>—</strong>
+            }
           </article>
-          <article class="card">
-            <small>CLASSIFIED</small><strong>{{ s.resultCount }}</strong>
+          <article class="card stat">
+            <small>LAST RACE WINNER</small>
+            @if (lastRaceWinner(); as w) {
+              <strong>{{ w.driverName }}</strong>
+              <a [routerLink]="['/races', s.seasonYear, s.race.round]">{{ s.race.name }}</a>
+            } @else {
+              <strong>—</strong>
+            }
           </article>
         </section>
         <section class="dashboard-grid">
-          <article class="card classification">
+          <article class="card standings">
             <div class="card-head">
-              <h2>LATEST CLASSIFICATION</h2>
-              <a [routerLink]="['/races', s.race.seasonYear, s.race.round]">Full race</a>
+              <div>
+                <h2>DRIVER STANDINGS</h2>
+                <p>Points, wins and podiums this season</p>
+              </div>
+              <a routerLink="/drivers">All drivers</a>
             </div>
-            @for (r of s.classification.slice(0, 10); track r.id) {
-              <div class="result">
-                <b>{{ r.finishPosition }}</b
-                ><span class="avatar">{{ initials(r.driverName) }}</span>
+            @for (d of driverStandings().slice(0, 8); track d.driverId) {
+              <div class="standing-row" [class.top3]="d.position <= 3">
+                <b>{{ d.position }}</b>
                 <p>
-                  <strong>{{ r.driverName }}</strong
-                  ><small>{{ r.constructorName }}</small>
+                  <strong>{{ d.driverName }}</strong><small>{{ d.constructorName }}</small>
                 </p>
-                <em>{{ r.points }} pts</em>
+                <span class="mini-stats">{{ d.wins }}W · {{ d.podiums }}P</span>
+                <strong class="points">{{ d.points }}</strong>
               </div>
             } @empty {
-              <div class="empty">No classification available.</div>
+              <div class="empty">Standings will appear once results are recorded.</div>
             }
           </article>
-          <article class="card movement">
-            <h2>GRID TO FINISH</h2>
-            <p>Position gained or lost</p>
-            <div class="movement-list">
-              @for (r of s.classification.slice(0, 10); track r.id) {
-                <div>
-                  <span>{{ r.driverRef.toUpperCase() }}</span
-                  ><i><b [class.loss]="movement(r) < 0" [style.width.%]="movementWidth(r)"></b></i
-                  ><strong [class.negative]="movement(r) < 0"
-                    >{{ movement(r) > 0 ? '+' : '' }}{{ movement(r) }}</strong
-                  >
-                </div>
-              }
+          <article class="card constructors">
+            <div class="card-head">
+              <div>
+                <h2>CONSTRUCTOR STANDINGS</h2>
+                <p>Team points this season</p>
+              </div>
+              <a routerLink="/teams">All teams</a>
             </div>
-          </article>
-          <article class="card model">
-            <h2>NEXT FORECAST</h2>
-            <p>Build a starting grid and run the finishing-order model.</p>
-            <a routerLink="/predictions" class="btn-primary">Create prediction</a>
-          </article>
-          <article class="card season-note">
-            <h2>DATA COVERAGE</h2>
-            <p>
-              Season totals and the latest classification are aggregated by the intelligence API,
-              keeping calculation rules consistent across every client.
-            </p>
+            @for (c of topConstructors(); track c.constructorId) {
+              <div class="constructor-row">
+                <b>{{ c.position }}</b>
+                <p>{{ c.constructorName }}</p>
+                <i><b [style.width.%]="(c.points / maxConstructorPoints()) * 100"></b></i>
+                <strong>{{ c.points }}</strong>
+              </div>
+            } @empty {
+              <div class="empty">No constructor standings yet.</div>
+            }
           </article>
           <article class="card points-chart">
-            <div class="card-head"><div><h2>POINTS PROGRESSION</h2><p>Leading drivers across completed rounds</p></div></div>
+            <div class="card-head">
+              <div>
+                <h2>POINTS PROGRESSION</h2>
+                <p>Top 5 drivers, cumulative points by round</p>
+              </div>
+            </div>
             <app-historical-line-chart
               [series]="pointsSeries()"
               xLabel="Round"
               yLabel="Points"
-              ariaLabel="Cumulative driver points through the selected season"
+              ariaLabel="Cumulative points for the top five drivers through the selected season"
             />
           </article>
         </section>
+        <a routerLink="/predictions" class="cta-strip">
+          <span><strong>Curious how the next race plays out?</strong> Build a starting grid and run the finishing-order model.</span>
+          <span class="cta-arrow">Run a prediction →</span>
+        </a>
       }
     </section></app-intelligence-shell
   >`,
@@ -121,13 +145,37 @@ export class DashboardComponent {
   private readonly service = inject(DashboardService);
   private readonly seasonService = inject(SeasonService);
   private readonly raceService = inject(RaceService);
+  private readonly standingsService = inject(StandingsService);
+  private readonly constructorService = inject(ConstructorService);
+
   readonly summary = signal<DashboardSummary | null>(null);
   readonly seasons = signal<number[]>([]);
   readonly loading = signal(true);
   readonly error = signal('');
   readonly seasonResults = signal<RaceResult[]>([]);
-  readonly pointsSeries = computed<HistoricalChartSeries[]>(() => this.buildPointsSeries(this.seasonResults()));
+  readonly driverStandings = signal<DriverStanding[]>([]);
+  readonly constructorStandings = signal<ConstructorStanding[]>([]);
+
+  readonly leader = computed(() => this.driverStandings()[0] ?? null);
+  readonly runnerUp = computed(() => this.driverStandings()[1] ?? null);
+  readonly pointsGap = computed(() => {
+    const leader = this.leader();
+    const runnerUp = this.runnerUp();
+    return leader && runnerUp ? Math.round((leader.points - runnerUp.points) * 10) / 10 : null;
+  });
+  readonly lastRaceWinner = computed(
+    () => this.summary()?.classification.find((r) => r.finishPosition === 1) ?? null,
+  );
+  readonly topConstructors = computed(() => this.constructorStandings().slice(0, 6));
+  readonly maxConstructorPoints = computed(() =>
+    Math.max(1, ...this.topConstructors().map((c) => c.points)),
+  );
+  readonly pointsSeries = computed<HistoricalChartSeries[]>(() =>
+    this.buildPointsSeries(this.seasonResults(), this.driverStandings()),
+  );
+
   season = 2024;
+
   constructor() {
     this.seasonService.getAll().subscribe({
       next: (years) => {
@@ -138,13 +186,25 @@ export class DashboardComponent {
       error: () => this.load(),
     });
   }
+
   load() {
     this.loading.set(true);
     this.error.set('');
     this.seasonResults.set([]);
+    this.driverStandings.set([]);
+    this.constructorStandings.set([]);
+
     this.raceService.getSeasonResults(this.season).subscribe({
       next: (results) => this.seasonResults.set(results),
       error: () => this.seasonResults.set([]),
+    });
+    this.standingsService.getDriverStandings(this.season).subscribe({
+      next: (standings) => this.driverStandings.set(standings),
+      error: () => this.driverStandings.set([]),
+    });
+    this.constructorService.getStandings(this.season).subscribe({
+      next: (standings) => this.constructorStandings.set(standings),
+      error: () => this.constructorStandings.set([]),
     });
     this.service.getSeasonSummary(this.season).subscribe({
       next: (s) => {
@@ -157,47 +217,28 @@ export class DashboardComponent {
       },
     });
   }
-  initials(name: string) {
-    return name
-      .split(' ')
-      .map((p) => p[0])
-      .join('')
-      .slice(0, 2);
-  }
-  movement(result: { gridPosition: number | null; finishPosition: number | null }) {
-    return (result.gridPosition ?? 0) - (result.finishPosition ?? 0);
-  }
-  movementWidth(result: { gridPosition: number | null; finishPosition: number | null }) {
-    return Math.min(100, Math.max(8, Math.abs(this.movement(result)) * 10));
-  }
 
-  private buildPointsSeries(results: RaceResult[]): HistoricalChartSeries[] {
-    const colors = ['#d92332', '#24688a', '#d98516', '#2d7d5b', '#7a5aa6'];
-    const grouped = new Map<string, RaceResult[]>();
+  private buildPointsSeries(results: RaceResult[], standings: DriverStanding[]): HistoricalChartSeries[] {
+    const top = standings.slice(0, 5);
+    if (!top.length) return [];
+    const byDriver = new Map<string, RaceResult[]>();
     for (const result of results) {
-      const entries = grouped.get(result.driverRef) ?? [];
+      const entries = byDriver.get(result.driverRef) ?? [];
       entries.push(result);
-      grouped.set(result.driverRef, entries);
+      byDriver.set(result.driverRef, entries);
     }
-    return [...grouped.entries()]
-      .map(([driverRef, entries]) => ({
-        driverRef,
-        name: entries[0]?.driverName ?? driverRef,
-        entries: [...entries].sort((a, b) => a.round - b.round),
-        total: entries.reduce((sum, result) => sum + Number(result.points ?? 0), 0),
-      }))
-      .sort((a, b) => b.total - a.total).slice(0, 5)
-      .map((driver, index) => {
-        let cumulative = 0;
-        return {
-          key: driver.driverRef,
-          label: driver.name,
-          color: colors[index] ?? '#6e7074',
-          points: driver.entries.map((result) => {
-            cumulative += Number(result.points ?? 0);
-            return { x: result.round, y: cumulative, label: `Round ${result.round}` };
-          }),
-        };
-      });
+    return top.map((driver, index) => {
+      const entries = [...(byDriver.get(driver.driverRef) ?? [])].sort((a, b) => a.round - b.round);
+      let cumulative = 0;
+      return {
+        key: driver.driverRef,
+        label: driver.driverName,
+        color: SERIES_COLORS[index] ?? '#6e7074',
+        points: entries.map((result) => {
+          cumulative += Number(result.points ?? 0);
+          return { x: result.round, y: cumulative, label: `Round ${result.round}` };
+        }),
+      };
+    });
   }
 }

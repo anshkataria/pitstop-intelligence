@@ -5,9 +5,9 @@
   height: 44px;
   max-width: 330px;
   padding: 0 13px;
-  border: 1px solid #d8d9da;
-  border-radius: 6px;
-  background: #fff;
+  border: 1px solid var(--ps-border-strong);
+  border-radius: var(--ps-radius-input);
+  background: var(--ps-surface);
 }
 .eyebrow i {
   display: inline-block;
@@ -15,23 +15,23 @@
   height: 7px;
   margin-right: 7px;
   border-radius: 50%;
-  background: #a1a3a7;
+  background: var(--ps-text-muted);
 }
 .eyebrow i.connected {
-  background: #2d7d5b;
-  box-shadow: 0 0 0 4px #2d7d5b1c;
+  background: var(--ps-green);
+  box-shadow: 0 0 0 4px rgba(45, 125, 91, 0.11);
 }
 .session-strip {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   margin-bottom: 18px;
-  border: 1px solid #dedede;
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--ps-border);
+  border-radius: var(--ps-radius-card);
+  background: var(--ps-surface);
 }
 .session-strip div {
   padding: 17px 20px;
-  border-right: 1px solid #eee;
+  border-right: 1px solid var(--ps-border);
 }
 .session-strip div:last-child {
   border: 0;
@@ -41,7 +41,7 @@
   display: block;
 }
 .session-strip small {
-  color: #777;
+  color: var(--ps-text-secondary);
   font: 500 8px var(--ps-font-mono);
 }
 .session-strip strong {
@@ -50,24 +50,59 @@
 }
 .live-grid {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: min-content;
   gap: 18px;
 }
 .live-grid > article {
   padding: 22px;
 }
 .timing {
-  grid-row: span 2;
+  grid-column: 1;
+  grid-row: 1 / 3;
+}
+.weather {
+  grid-column: 2;
+  grid-row: 1;
+}
+.intelligence {
+  grid-column: 2;
+  grid-row: 2;
 }
 .card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 .card-head p,
 .card-head > span {
-  color: #777;
+  color: var(--ps-text-secondary);
   font-size: 9px;
+}
+.tab-switch {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--ps-bg);
+  border-radius: var(--ps-radius-sm);
+}
+.tab-switch button {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ps-text-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tab-switch button.active {
+  background: var(--ps-surface);
+  color: var(--ps-text);
+  box-shadow: var(--ps-shadow-card);
 }
 .timing-row {
   display: grid;
@@ -78,14 +113,14 @@
   min-height: 47px;
   padding: 0 8px;
   border: 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--ps-border);
   background: transparent;
   text-align: left;
   cursor: pointer;
 }
 .timing-row:hover,
 .timing-row.selected {
-  background: #f7f7f5;
+  background: var(--ps-bg);
 }
 .timing-row b,
 .timing-row strong,
@@ -95,7 +130,7 @@
   font-style: normal;
 }
 .timing-row span {
-  color: #666;
+  color: var(--ps-text-secondary);
   font-size: 9px;
 }
 .timing-row em {
@@ -113,7 +148,7 @@
 }
 .weather-value span {
   margin-top: 5px;
-  color: #777;
+  color: var(--ps-text-secondary);
   font-size: 9px;
 }
 .weather-grid {
@@ -127,31 +162,32 @@
   font-size: 9px;
 }
 .weather-grid span {
-  color: #777;
+  color: var(--ps-text-secondary);
 }
 .weather-grid b {
   margin-top: 4px;
-  color: #171819;
+  color: var(--ps-text);
 }
 .telemetry {
+  grid-column: 1 / 3;
   min-width: 0;
 }
 .car-state {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
   margin: 14px 0;
 }
 .car-state span {
   padding: 8px;
-  border: 1px solid #eee;
-  color: #777;
+  border: 1px solid var(--ps-border);
+  color: var(--ps-text-secondary);
   font: 500 7px var(--ps-font-mono);
 }
 .car-state b {
   display: block;
   margin-top: 5px;
-  color: #171819;
+  color: var(--ps-text);
   font-size: 9px;
 }
 .stint,
@@ -160,7 +196,7 @@
   grid-template-columns: 1fr auto;
   gap: 5px;
   padding: 12px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--ps-border);
 }
 .stint b,
 .pit b,
@@ -170,12 +206,11 @@
 }
 .stint small {
   grid-column: 1 / 3;
-  color: #888;
+  color: var(--ps-text-secondary);
   font-size: 8px;
 }
-.intelligence,
-.control {
-  grid-column: span 1;
+.strategy-feed {
+  grid-column: 1 / 3;
 }
 .model-grid {
   display: grid;
@@ -185,8 +220,8 @@
 }
 .model-grid > div {
   padding: 15px;
-  border: 1px solid #e5e5e5;
-  border-radius: 6px;
+  border: 1px solid var(--ps-border);
+  border-radius: var(--ps-radius-sm);
 }
 .model-grid small,
 .model-grid strong,
@@ -194,7 +229,7 @@
   display: block;
 }
 .model-grid small {
-  color: #777;
+  color: var(--ps-text-secondary);
   font: 500 8px var(--ps-font-mono);
 }
 .model-grid strong {
@@ -202,25 +237,28 @@
   font: 500 20px var(--ps-font-mono);
 }
 .model-grid span {
-  color: #777;
+  color: var(--ps-text-secondary);
   font-size: 8px;
+}
+.control {
+  grid-column: 1 / 3;
 }
 .control-row {
   display: flex;
   gap: 11px;
   padding: 11px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--ps-border);
 }
 .control-row > span {
   align-self: flex-start;
   padding: 4px 6px;
   border-radius: 3px;
-  background: #eee;
+  background: var(--ps-bg);
   font: 600 7px var(--ps-font-mono);
 }
 .control-row > span.alert {
-  background: #fff0c9;
-  color: #80520a;
+  background: var(--ps-amber-subtle);
+  color: var(--ps-amber);
 }
 .control-row p {
   margin: 0;
@@ -230,29 +268,34 @@
 .control-row small {
   display: block;
   margin-top: 4px;
-  color: #888;
+  color: var(--ps-text-secondary);
   font-size: 8px;
 }
 .empty,
 .state {
   padding: 45px;
   text-align: center;
-  color: #888;
+  color: var(--ps-text-secondary);
   font-size: 10px;
 }
 @media (max-width: 900px) {
   .live-grid {
     grid-template-columns: 1fr;
   }
-  .timing {
+  .timing,
+  .weather,
+  .intelligence,
+  .telemetry,
+  .strategy-feed,
+  .control {
+    grid-column: auto;
     grid-row: auto;
   }
   .session-strip {
     grid-template-columns: 1fr 1fr;
   }
-  .intelligence,
-  .control {
-    grid-column: auto;
+  .car-state {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 @media (max-width: 560px) {
@@ -261,12 +304,15 @@
   }
   .session-strip div {
     border-right: 0;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--ps-border);
   }
   .timing-row {
     grid-template-columns: 22px 3px 40px 1fr 48px;
   }
   .timing-row span {
     display: none;
+  }
+  .car-state {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

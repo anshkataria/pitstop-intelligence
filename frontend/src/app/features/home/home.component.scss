@@ -88,17 +88,6 @@ h1 {
   font-size: 10px;
   color: rgba(255, 255, 255, 0.66);
 }
-.race-strip .sun {
-  margin-right: 7px;
-  color: #fff;
-  font-size: 21px;
-  vertical-align: -2px;
-}
-.race-strip em {
-  font-size: 12px;
-  font-style: normal;
-  color: rgba(255, 255, 255, 0.8);
-}
 @media (max-height: 760px) {
   .hero__content {
     padding-top: 95px;
@@ -160,8 +149,5 @@ h1 {
   }
   .race-strip span {
     display: none;
-  }
-  .race-strip .sun {
-    font-size: 16px;
   }
 }
