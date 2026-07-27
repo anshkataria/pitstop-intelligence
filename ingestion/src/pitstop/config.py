@@ -1,8 +1,15 @@
 import os
 from dataclasses import dataclass
+from datetime import date
 from dotenv import load_dotenv
 
 load_dotenv()
+
+FIRST_F1_SEASON = 2020
+
+
+def _all_seasons_to_date() -> str:
+    return ",".join(str(year) for year in range(FIRST_F1_SEASON, date.today().year + 1))
 
 
 @dataclass(frozen=True)
@@ -36,7 +43,7 @@ class AppConfig:
 
 
 def load_config() -> AppConfig:
-    seasons_raw = os.getenv("SEASONS_TO_FETCH", "2023,2024")
+    seasons_raw = os.getenv("SEASONS_TO_FETCH") or _all_seasons_to_date()
     try:
         seasons = sorted({int(y.strip()) for y in seasons_raw.split(",") if y.strip()})
     except ValueError as exc:
