@@ -10,7 +10,11 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost/healthz >/dev/null || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O - http://localhost/healthz >/dev/null || exit 1",
+        ]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -81,7 +85,11 @@ services:
       live-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/api/v1/health >/dev/null || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O - http://localhost:8080/api/v1/health >/dev/null || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -111,7 +119,13 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/v1/health', timeout=2)"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/v1/health', timeout=2)",
+        ]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -148,7 +162,13 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8010/v1/health', timeout=2)"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8010/v1/health', timeout=2)",
+        ]
       interval: 15s
       timeout: 3s
       retries: 10
@@ -166,7 +186,7 @@ services:
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       ERGAST_BASE_URL: https://api.jolpi.ca/ergast/f1
-      SEASONS_TO_FETCH: ${SEASONS_TO_FETCH:-2023,2024}
+      SEASONS_TO_FETCH: ${SEASONS_TO_FETCH:-2020,2021,2022,2023,2024,2025,2026}
     depends_on:
       postgres:
         condition: service_healthy
@@ -202,7 +222,13 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9101/metrics', timeout=2)"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:9101/metrics', timeout=2)",
+        ]
       interval: 30s
       timeout: 3s
       retries: 3
