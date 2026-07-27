@@ -49,7 +49,7 @@ import { colorForTeam } from '../../../shared/utils/team-color';
               </span>
             </div>
           </div>
-          <select [(ngModel)]="season" (ngModelChange)="loadSeason()">
+          <select class="ps-select" [(ngModel)]="season" (ngModelChange)="loadSeason()">
             @for (year of seasons(); track year) {
               <option [ngValue]="year">{{ year }} Season</option>
             }
@@ -164,7 +164,7 @@ import { colorForTeam } from '../../../shared/utils/team-color';
         color: var(--team-color);
         font-weight: 600;
       }
-      .profile-hero select { height: 42px; padding: 0 13px; border: 1px solid var(--ps-border-strong); border-radius: var(--ps-radius-input); background: var(--ps-surface); }
+      .profile-hero select { min-width: 150px; }
       .profile-grid {
         display: grid;
         grid-template-columns: 1.3fr 0.7fr;

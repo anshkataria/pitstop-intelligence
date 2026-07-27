@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { LucideAngularModule, CalendarCheck, Trophy, TrendingUp, Flag } from 'lucide-angular';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { DashboardSummary } from '../../core/models/dashboard.model';
 import { IntelligenceShellComponent } from '../../shared/components/intelligence-shell/intelligence-shell.component';
@@ -15,6 +16,7 @@ import {
   HistoricalChartSeries,
   HistoricalLineChartComponent,
 } from '../../shared/components/charts/historical-line-chart.component';
+import { colorForTeam } from '../../shared/utils/team-color';
 
 // Fixed-order categorical palette (validated for CVD-safe adjacency) — one hue per
 // series identity, never reassigned when the list changes.
@@ -23,7 +25,7 @@ const SERIES_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [FormsModule, RouterLink, IntelligenceShellComponent, HistoricalLineChartComponent],
+  imports: [FormsModule, RouterLink, LucideAngularModule, IntelligenceShellComponent, HistoricalLineChartComponent],
   template: `<app-intelligence-shell
     ><section class="screen">
       <header class="screen-head">
@@ -32,7 +34,7 @@ const SERIES_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
           <h1>{{ season }} Season</h1>
           <p>Standings, form and points trend through the latest round.</p>
         </div>
-        <select [(ngModel)]="season" (ngModelChange)="load()">
+        <select class="ps-select" [(ngModel)]="season" (ngModelChange)="load()">
           @for (year of seasons(); track year) {
             <option [ngValue]="year">{{ year }} Season</option>
           }
@@ -45,10 +47,12 @@ const SERIES_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
       } @else if (summary(); as s) {
         <section class="stat-strip">
           <article class="card stat">
+            <lucide-icon [img]="calendarIcon" [size]="16" />
             <small>ROUNDS COMPLETED</small>
             <strong>{{ s.raceCount }}</strong>
           </article>
           <article class="card stat">
+            <lucide-icon [img]="trophyIcon" [size]="16" />
             <small>CHAMPIONSHIP LEADER</small>
             @if (leader(); as l) {
               <strong>{{ l.driverName }}</strong>
@@ -58,6 +62,7 @@ const SERIES_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
             }
           </article>
           <article class="card stat">
+            <lucide-icon [img]="trendIcon" [size]="16" />
             <small>LEAD OVER P2</small>
             @if (pointsGap(); as gap) {
               <strong>+{{ gap }}</strong>
@@ -67,6 +72,7 @@ const SERIES_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
             }
           </article>
           <article class="card stat">
+            <lucide-icon [img]="flagIcon" [size]="16" />
             <small>LAST RACE WINNER</small>
             @if (lastRaceWinner(); as w) {
               <strong>{{ w.driverName }}</strong>
@@ -86,8 +92,9 @@ const SERIES_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
               <a routerLink="/drivers">All drivers</a>
             </div>
             @for (d of driverStandings().slice(0, 8); track d.driverId) {
-              <div class="standing-row" [class.top3]="d.position <= 3">
-                <b>{{ d.position }}</b>
+              <div class="standing-row" [class.leader]="d.position === 1">
+                <b [class.top3]="d.position <= 3">{{ d.position }}</b>
+                <i class="dot" [style.background]="teamColor(d.constructorName)"></i>
                 <p>
                   <strong>{{ d.driverName }}</strong><small>{{ d.constructorName }}</small>
                 </p>
@@ -102,16 +109,26 @@ const SERIES_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
             <div class="card-head">
               <div>
                 <h2>CONSTRUCTOR STANDINGS</h2>
-                <p>Team points this season</p>
+                <p>Team points, wins and podiums this season</p>
               </div>
               <a routerLink="/teams">All teams</a>
             </div>
             @for (c of topConstructors(); track c.constructorId) {
-              <div class="constructor-row">
-                <b>{{ c.position }}</b>
-                <p>{{ c.constructorName }}</p>
-                <i><b [style.width.%]="(c.points / maxConstructorPoints()) * 100"></b></i>
-                <strong>{{ c.points }}</strong>
+              <div class="constructor-row" [class.leader]="c.position === 1">
+                <div class="row-top">
+                  <b [class.top3]="c.position <= 3">{{ c.position }}</b>
+                  <i class="dot" [style.background]="teamColor(c.constructorName)"></i>
+                  <p>{{ c.constructorName }}</p>
+                  <span class="mini-stats">{{ c.wins }}W · {{ c.podiums }}P</span>
+                  <strong>{{ c.points }}</strong>
+                </div>
+                <div class="bar-track">
+                  <div
+                    class="bar-fill"
+                    [style.width.%]="(c.points / maxConstructorPoints()) * 100"
+                    [style.background]="teamColor(c.constructorName)"
+                  ></div>
+                </div>
               </div>
             } @empty {
               <div class="empty">No constructor standings yet.</div>
@@ -173,6 +190,12 @@ export class DashboardComponent {
   readonly pointsSeries = computed<HistoricalChartSeries[]>(() =>
     this.buildPointsSeries(this.seasonResults(), this.driverStandings()),
   );
+
+  readonly calendarIcon = CalendarCheck;
+  readonly trophyIcon = Trophy;
+  readonly trendIcon = TrendingUp;
+  readonly flagIcon = Flag;
+  readonly teamColor = colorForTeam;
 
   season = 2024;
 

@@ -23,7 +23,7 @@ import { SeasonService } from '../../core/services/season.service';
           <h1>Grand Prix Schedule</h1>
           <p>Every round, circuit and race date.</p>
         </div>
-        <select [(ngModel)]="season" (ngModelChange)="load()">
+        <select class="ps-select" [(ngModel)]="season" (ngModelChange)="load()">
           @for (year of seasons(); track year) {
             <option [ngValue]="year">{{ year }}</option>
           }
@@ -54,11 +54,6 @@ import { SeasonService } from '../../core/services/season.service';
     `
       .screen-head select {
         min-width: 150px;
-        height: 44px;
-        padding: 0 14px;
-        border: 1px solid var(--ps-border-strong);
-        border-radius: var(--ps-radius-input);
-        background: var(--ps-surface);
       }
       .race-grid {
         display: grid;

@@ -28,13 +28,13 @@ import { SeasonService } from '../../core/services/season.service';
           <h2>RACE</h2>
           <div class="selectors">
             <label
-              >Season<select [(ngModel)]="season" (ngModelChange)="loadRaces()">
+              >Season<select class="ps-select" [(ngModel)]="season" (ngModelChange)="loadRaces()">
                 @for (year of seasons(); track year) {
                   <option [ngValue]="year">{{ year }}</option>
                 }
               </select></label
             ><label
-              >Grand Prix<select [(ngModel)]="round" (ngModelChange)="loadContext()">
+              >Grand Prix<select class="ps-select" [(ngModel)]="round" (ngModelChange)="loadContext()">
                 @for (r of races(); track r.id) {
                   <option [ngValue]="r.round">R{{ r.round }} · {{ r.name }}</option>
                 }
@@ -140,12 +140,7 @@ import { SeasonService } from '../../core/services/season.service';
       .selectors select {
         display: block;
         width: 100%;
-        height: 42px;
         margin-top: 7px;
-        padding: 0 10px;
-        border: 1px solid var(--ps-border-strong);
-        border-radius: var(--ps-radius-sm);
-        background: var(--ps-surface);
       }
       .grid-head,
       .output-head {

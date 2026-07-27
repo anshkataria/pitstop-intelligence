@@ -12,7 +12,7 @@ import { LiveService } from '../../core/services/live.service';
   imports: [CommonModule, FormsModule, IntelligenceShellComponent, HistoricalLineChartComponent],
   template: `<app-intelligence-shell><section class="screen live-screen">
     <header class="screen-head"><div><p class="eyebrow"><i [class.connected]="connected()"></i>{{connected()?'STREAM CONNECTED':'REPLAY / RECENT DATA'}}</p><h1>Live Race Intelligence</h1><p>Timing, telemetry, strategy and race-control signals from one session.</p></div>
-      <select [ngModel]="sessionKey()" (ngModelChange)="selectSession($event)">@for(session of sessions();track session.sessionKey){<option [value]="session.sessionKey">{{session.year}} · {{session.countryName}} · {{session.sessionName}}</option>}</select>
+      <select class="ps-select" [ngModel]="sessionKey()" (ngModelChange)="selectSession($event)">@for(session of sessions();track session.sessionKey){<option [value]="session.sessionKey">{{session.year}} · {{session.countryName}} · {{session.sessionName}}</option>}</select>
     </header>
     @if(loading()){<div class="card state">Loading session intelligence…</div>}
     @else if(error()){<div class="card state">{{error()}}</div>}
