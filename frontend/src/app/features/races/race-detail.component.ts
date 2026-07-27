@@ -4,6 +4,8 @@ import { RaceService } from '../../core/services/race.service';
 import { Race } from '../../core/models/race.model';
 import { RaceResult } from '../../core/models/race-result.model';
 import { IntelligenceShellComponent } from '../../shared/components/intelligence-shell/intelligence-shell.component';
+import { flagForCountry } from '../../shared/utils/country-flag';
+import { colorForTeam } from '../../shared/utils/team-color';
 
 @Component({
   selector: 'app-race-detail',
@@ -15,9 +17,14 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
         <a routerLink="/races" class="back">← Race calendar</a>
         <header class="screen-head">
           <div>
-            <p class="eyebrow">ROUND {{ r.round }} · {{ r.seasonYear }}</p>
+            <p class="eyebrow">
+              ROUND {{ r.round }} · {{ r.seasonYear }}
+              @if (isUpcoming()) {
+                <span class="ps-badge ps-badge--neutral upcoming-badge">Upcoming</span>
+              }
+            </p>
             <h1>{{ r.name }}</h1>
-            <p>{{ r.raceDate }} &nbsp;·&nbsp; {{ r.circuitName }} &nbsp;·&nbsp; {{ r.country }}</p>
+            <p>{{ r.raceDate }} &nbsp;·&nbsp; {{ r.circuitName }} &nbsp;·&nbsp; {{ flagForCountry(r.country) }} {{ r.country }}</p>
           </div>
           <a
             [routerLink]="['/race-analysis']"
@@ -31,27 +38,34 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
             <h2>Race info</h2>
             <dl>
               <div>
-                <dt>Season</dt>
-                <dd>{{ r.seasonYear }}</dd>
-              </div>
-              <div>
-                <dt>Round</dt>
-                <dd>{{ r.round }}</dd>
+                <dt>Circuit</dt>
+                <dd class="circuit-name">{{ r.circuitName }}</dd>
               </div>
               <div>
                 <dt>Country</dt>
-                <dd>{{ r.country }}</dd>
+                <dd>{{ flagForCountry(r.country) }} {{ r.country }}</dd>
               </div>
               <div>
-                <dt>Circuit</dt>
-                <dd class="circuit-name">{{ r.circuitName }}</dd>
+                <dt>Race date</dt>
+                <dd class="circuit-name">{{ r.raceDate }}</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd class="circuit-name">{{ isUpcoming() ? 'Upcoming' : 'Completed' }}</dd>
               </div>
             </dl>
             @if (winner(); as w) {
               <div class="winner">
                 <small>WINNER</small>
-                <strong>{{ w.driverName }}</strong>
+                <div class="winner-line">
+                  <i class="dot" [style.background]="teamColor(w.constructorName)"></i>
+                  <strong>{{ w.driverName }}</strong>
+                </div>
                 <span>{{ w.constructorName }}</span>
+              </div>
+            } @else if (isUpcoming()) {
+              <div class="winner upcoming-note">
+                <p>This race hasn't been run yet — results will appear here once it's completed.</p>
               </div>
             }
           </article>
@@ -71,7 +85,7 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
                 }
               </div>
             } @else {
-              <div class="notice">Classification not available for this race.</div>
+              <div class="notice">{{ isUpcoming() ? 'This race has not been run yet.' : 'No classification is stored for this race.' }}</div>
             }
           </article>
         </div>
@@ -90,6 +104,10 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
         color: var(--ps-text-secondary);
         text-decoration: none;
         font-size: 12px;
+      }
+      .upcoming-badge {
+        margin-left: 8px;
+        vertical-align: middle;
       }
       .detail-grid {
         display: grid;
@@ -123,24 +141,38 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
         padding-top: 20px;
         border-top: 1px solid var(--ps-border);
       }
-      .winner small,
-      .winner strong,
-      .winner span {
-        display: block;
-      }
       .winner small {
+        display: block;
         color: var(--ps-red);
         font: 600 9px var(--ps-font-mono);
         letter-spacing: 0.05em;
       }
-      .winner strong {
-        margin-top: 6px;
+      .winner-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .winner-line .dot {
+        width: 10px;
+        height: 10px;
+        flex-shrink: 0;
+        border-radius: 50%;
+      }
+      .winner-line strong {
         font-size: 18px;
       }
-      .winner span {
-        margin-top: 3px;
+      .winner > span {
+        display: block;
+        margin: 3px 0 0 18px;
         color: var(--ps-text-secondary);
         font-size: 12px;
+      }
+      .upcoming-note p {
+        margin: 0;
+        color: var(--ps-text-secondary);
+        font-size: 12px;
+        line-height: 1.6;
       }
       .notice {
         display: grid;
@@ -196,6 +228,9 @@ export class RaceDetailComponent implements OnInit {
   readonly results = signal<RaceResult[]>([]);
   readonly error = signal('');
   readonly winner = computed(() => this.results().find((r) => r.finishPosition === 1) ?? null);
+  readonly isUpcoming = computed(() => this.race() !== null && this.results().length === 0);
+  readonly flagForCountry = flagForCountry;
+  readonly teamColor = colorForTeam;
   ngOnInit() {
     const year = Number(this.route.snapshot.paramMap.get('year'));
     const round = Number(this.route.snapshot.paramMap.get('round'));

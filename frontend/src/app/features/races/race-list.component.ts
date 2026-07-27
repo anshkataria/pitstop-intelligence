@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
@@ -10,6 +10,10 @@ import {
   selectSelectedSeason,
 } from '../../core/store/races/races.selectors';
 import { SeasonService } from '../../core/services/season.service';
+import { RaceService } from '../../core/services/race.service';
+import { RaceResult } from '../../core/models/race-result.model';
+import { flagForCountry } from '../../shared/utils/country-flag';
+import { colorForTeam } from '../../shared/utils/team-color';
 
 @Component({
   selector: 'app-race-list',
@@ -34,13 +38,29 @@ import { SeasonService } from '../../core/services/season.service';
           <div class="card state">Loading race calendar…</div>
         } @else {
           @for (r of races(); track r.id) {
-            <a class="card race" [routerLink]="['/races', r.seasonYear, r.round]"
-              ><span class="round">ROUND {{ r.round }}</span>
+            <a
+              class="card race"
+              [class.next]="r.round === nextRound()"
+              [routerLink]="['/races', r.seasonYear, r.round]"
+            >
+              <div class="race-head">
+                <span class="round">ROUND {{ r.round }}</span>
+                @if (r.round === nextRound()) {
+                  <span class="ps-badge ps-badge--info">Next race</span>
+                } @else if (!isCompleted(r.round)) {
+                  <span class="ps-badge ps-badge--neutral">Upcoming</span>
+                }
+              </div>
               <h2>{{ r.name }}</h2>
               <p>{{ r.circuitName }}</p>
+              <div class="winner-row">
+                @if (winnerOf(r.round); as w) {
+                  <i class="dot" [style.background]="teamColor(w.constructorName)"></i>
+                  <strong>{{ w.driverName }}</strong>
+                }
+              </div>
               <footer>
-                <span>{{ r.country }}</span
-                ><time>{{ r.raceDate }}</time>
+                <span>{{ flagForCountry(r.country) }} {{ r.country }}</span><time>{{ r.raceDate }}</time>
               </footer></a
             >
           } @empty {
@@ -70,7 +90,16 @@ import { SeasonService } from '../../core/services/season.service';
       }
       .race:hover {
         transform: translateY(-2px);
-        border-color: #d92332;
+        border-color: var(--ps-red);
+      }
+      .race.next {
+        border-left: 3px solid var(--ps-red);
+      }
+      .race-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
       }
       .round {
         font: 600 9px var(--ps-font-mono);
@@ -84,6 +113,20 @@ import { SeasonService } from '../../core/services/season.service';
         min-height: 35px;
         color: var(--ps-text-secondary);
         font-size: 11px;
+      }
+      .winner-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 20px;
+        margin-bottom: 4px;
+        font-size: 12px;
+      }
+      .winner-row .dot {
+        width: 8px;
+        height: 8px;
+        flex-shrink: 0;
+        border-radius: 50%;
       }
       .race footer {
         display: flex;
@@ -113,10 +156,24 @@ import { SeasonService } from '../../core/services/season.service';
 export class RaceListComponent implements OnInit {
   private store = inject(Store);
   private readonly seasonService = inject(SeasonService);
+  private readonly raceService = inject(RaceService);
   readonly races = this.store.selectSignal(selectAllRaces);
   readonly loading = this.store.selectSignal(selectRacesLoading);
   readonly seasons = signal<number[]>([]);
+  readonly seasonResults = signal<RaceResult[]>([]);
+  readonly completedRounds = computed(() => new Set(this.seasonResults().map((r) => r.round)));
+  readonly nextRound = computed(() => {
+    const completed = this.completedRounds();
+    const upcoming = this.races()
+      .map((r) => r.round)
+      .filter((round) => !completed.has(round))
+      .sort((a, b) => a - b);
+    return upcoming[0] ?? null;
+  });
+  readonly flagForCountry = flagForCountry;
+  readonly teamColor = colorForTeam;
   season = 2024;
+
   ngOnInit() {
     this.seasonService.getAll().subscribe({
       next: (years) => {
@@ -130,5 +187,18 @@ export class RaceListComponent implements OnInit {
   load() {
     this.store.dispatch(RacesActions.selectSeason({ year: +this.season }));
     this.store.dispatch(RacesActions.loadSeasonRaces({ year: +this.season }));
+    this.seasonResults.set([]);
+    this.raceService.getSeasonResults(this.season).subscribe({
+      next: (results) => this.seasonResults.set(results),
+      error: () => this.seasonResults.set([]),
+    });
+  }
+
+  isCompleted(round: number): boolean {
+    return this.completedRounds().has(round);
+  }
+
+  winnerOf(round: number): RaceResult | null {
+    return this.seasonResults().find((r) => r.round === round && r.finishPosition === 1) ?? null;
   }
 }
