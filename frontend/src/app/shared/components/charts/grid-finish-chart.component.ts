@@ -9,6 +9,13 @@ import { RaceResult } from '../../../core/models/race-result.model';
     <svg #svg role="img" [attr.aria-label]="ariaLabel"></svg>
     <div #tooltip class="tooltip" hidden></div>
     @if (!chartResults().length) { <div class="empty">No classified grid data available.</div> }
+    @if (chartResults().length) {
+      <div class="legend" aria-hidden="true">
+        <span><i class="gain"></i>Gained positions</span>
+        <span><i class="loss"></i>Lost positions</span>
+        <span><i class="same"></i>No change</span>
+      </div>
+    }
     <p class="sr-summary">{{ accessibleSummary() }}</p>
   </div>`,
   styleUrl: './grid-finish-chart.component.scss',
@@ -78,7 +85,7 @@ export class GridFinishChartComponent implements AfterViewInit, OnChanges, OnDes
       .on('focus', (event: FocusEvent, result) => this.showTooltip(event, result))
       .on('blur', () => this.hideTooltip())
       .on('pointerleave', () => this.hideTooltip());
-    points.append('circle').attr('r', 5).attr('fill', (result) => this.color(result));
+    points.append('circle').attr('r', 6).attr('fill', (result) => this.color(result));
     points.append('text').attr('x', 8).attr('y', 3).text((result) => result.driverRef.slice(0, 3).toUpperCase());
   }
 

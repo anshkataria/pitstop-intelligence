@@ -11,6 +11,7 @@ import {
   selectDriversTotal,
   selectDriversPage,
 } from '../../../core/store/drivers/drivers.selectors';
+import { flagFor } from '../../../shared/utils/nationality-flag';
 
 @Component({
   selector: 'app-driver-list',
@@ -34,50 +35,42 @@ import {
             placeholder="Search drivers..." /></label
         ><button class="btn-primary" (click)="load(0)">Search</button>
       </div>
-      <div class="card table-card">
-        @if (loading()) {
-          <div class="state">Loading drivers…</div>
-        } @else if (drivers().length === 0) {
-          <div class="state">No drivers found.</div>
-        } @else {
-          <table>
-            <thead>
-              <tr>
-                <th>Driver</th>
-                <th>Reference</th>
-                <th>Nationality</th>
-                <th>Date of birth</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (d of drivers(); track d.id) {
-                <tr>
-                  <td>
-                    <span class="avatar">{{ d.firstName[0] }}{{ d.lastName[0] }}</span
-                    ><strong>{{ d.fullName }}</strong>
-                  </td>
-                  <td class="mono">{{ d.driverRef }}</td>
-                  <td>{{ d.nationality || '—' }}</td>
-                  <td>{{ d.dateOfBirth || '—' }}</td>
-                  <td><a [routerLink]="['/drivers', d.id]">View profile</a></td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        }
-        <footer class="pagination">
-          <span>Page {{ page() + 1 }}</span>
-          <div>
-            <button (click)="load(page() - 1)" [disabled]="page() === 0">
-              <lucide-icon [img]="left" [size]="16" /></button
-            ><button (click)="load(page() + 1)" [disabled]="drivers().length < 10">
-              <lucide-icon [img]="right" [size]="16" />
-            </button>
-          </div>
-        </footer>
-      </div></section
-  ></app-intelligence-shell>`,
+      @if (loading()) {
+        <div class="card state">Loading drivers…</div>
+      } @else if (drivers().length === 0) {
+        <div class="card state">No drivers found.</div>
+      } @else {
+        <div class="driver-grid">
+          @for (d of drivers(); track d.id) {
+            <a class="card driver-card" [routerLink]="['/drivers', d.id]">
+              <div class="avatar">
+                {{ d.firstName[0] }}{{ d.lastName[0] }}
+                @if (flagFor(d.nationality); as flag) {
+                  <span class="flag">{{ flag }}</span>
+                }
+              </div>
+              <strong>{{ d.fullName }}</strong>
+              <span class="ref">{{ d.driverRef }}</span>
+              <div class="meta">
+                <span>{{ d.nationality || '—' }}</span>
+                <span>{{ d.dateOfBirth || '—' }}</span>
+              </div>
+            </a>
+          }
+        </div>
+      }
+      <footer class="pagination card">
+        <span>Page {{ page() + 1 }}</span>
+        <div>
+          <button (click)="load(page() - 1)" [disabled]="page() === 0">
+            <lucide-icon [img]="left" [size]="16" /></button
+          ><button (click)="load(page() + 1)" [disabled]="drivers().length < 10">
+            <lucide-icon [img]="right" [size]="16" />
+          </button>
+        </div>
+      </footer>
+    </section></app-intelligence-shell
+  >`,
   styles: [
     `
       .toolbar {
@@ -109,41 +102,67 @@ import {
         border: 1px solid var(--ps-border-strong);
         font-size: 11px;
       }
-      .table-card {
-        overflow: hidden;
+      .driver-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
       }
-      table {
-        width: 100%;
-        border-collapse: collapse;
+      .driver-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        padding: 24px 16px 20px;
+        text-align: center;
+        color: inherit;
+        text-decoration: none;
+        transition:
+          transform var(--ps-transition),
+          border-color var(--ps-transition);
       }
-      th,
-      td {
-        padding: 15px 18px;
-        text-align: left;
-        border-bottom: 1px solid var(--ps-border);
-        font-size: 12px;
-      }
-      th {
-        font: 500 9px var(--ps-font-mono);
-        color: var(--ps-text-secondary);
+      .driver-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--ps-red);
       }
       .avatar {
-        display: inline-grid;
+        position: relative;
+        display: grid;
         place-items: center;
-        width: 34px;
-        height: 34px;
-        margin-right: 12px;
+        width: 64px;
+        height: 64px;
         border-radius: 50%;
         background: var(--ps-text);
         color: #fff;
-        font: 600 9px var(--ps-font-mono);
+        font: 600 16px var(--ps-font-mono);
       }
-      td a {
-        color: var(--ps-red);
-        text-decoration: none;
+      .flag {
+        position: absolute;
+        right: -4px;
+        bottom: -4px;
+        display: grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--ps-surface);
+        box-shadow: var(--ps-shadow-card);
+        font-size: 12px;
       }
-      .mono {
-        font-family: var(--ps-font-mono);
+      .driver-card strong {
+        font-size: 14px;
+      }
+      .ref {
+        color: var(--ps-text-muted);
+        font: 500 10px var(--ps-font-mono);
+      }
+      .meta {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin-top: 4px;
+        color: var(--ps-text-secondary);
+        font-size: 10px;
       }
       .state {
         padding: 70px;
@@ -179,13 +198,14 @@ export class DriverListComponent implements OnInit {
   readonly searchIcon = Search;
   readonly left = ChevronLeft;
   readonly right = ChevronRight;
+  readonly flagFor = flagFor;
   ngOnInit() {
     this.load(0);
   }
   load(page: number) {
     if (page < 0) return;
     this.store.dispatch(
-      DriversActions.loadDrivers({ page, size: 10, search: this.search.trim() || undefined }),
+      DriversActions.loadDrivers({ page, size: 12, search: this.search.trim() || undefined }),
     );
   }
 }

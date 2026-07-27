@@ -38,14 +38,16 @@ export interface HistoricalChartSeries {
   selector: 'app-historical-line-chart',
   standalone: true,
   template: `<div #container class="chart-wrap">
-    <div class="legend" aria-hidden="true">
-      @for (item of series; track item.key) {
-        <span><i [style.background]="item.color"></i>{{ item.label }}</span>
-      }
-    </div>
     <svg #svg role="img" [attr.aria-label]="ariaLabel"></svg>
     <div #tooltip class="tooltip" hidden></div>
     @if (!hasData()) { <div class="empty">No historical data available.</div> }
+    @if (series.length > 1) {
+      <div class="legend" aria-hidden="true">
+        @for (item of series; track item.key) {
+          <span><i [style.background]="item.color" [class.dashed]="item.dashed"></i>{{ item.label }}</span>
+        }
+      </div>
+    }
     <p class="sr-summary">{{ accessibleSummary() }}</p>
   </div>`,
   styleUrl: './historical-line-chart.component.scss',
