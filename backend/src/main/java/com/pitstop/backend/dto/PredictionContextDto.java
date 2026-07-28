@@ -10,4 +10,5 @@ import java.util.List;
 public class PredictionContextDto {
     RaceDto race;
     List<PredictionContextEntryDto> entries;
+    boolean provisional;
 }

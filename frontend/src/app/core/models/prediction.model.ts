@@ -41,6 +41,7 @@ export interface PredictionContextEntry {
 export interface PredictionContext {
   race: import('./race.model').Race;
   entries: PredictionContextEntry[];
+  provisional: boolean;
 }
 
 export interface PredictionRunSummary {

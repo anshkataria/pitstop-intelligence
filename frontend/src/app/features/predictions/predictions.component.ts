@@ -7,7 +7,6 @@ import { RaceService } from '../../core/services/race.service';
 import { PredictionContextEntry, PredictionResult } from '../../core/models/prediction.model';
 import { Race } from '../../core/models/race.model';
 import { IntelligenceShellComponent } from '../../shared/components/intelligence-shell/intelligence-shell.component';
-import { SeasonService } from '../../core/services/season.service';
 
 @Component({
   selector: 'app-predictions',
@@ -26,21 +25,21 @@ import { SeasonService } from '../../core/services/season.service';
       <div class="prediction-layout">
         <article class="card builder">
           <h2>RACE</h2>
-          <div class="selectors">
-            <label
-              >Season<select class="ps-select" [(ngModel)]="season" (ngModelChange)="loadRaces()">
-                @for (year of seasons(); track year) {
-                  <option [ngValue]="year">{{ year }}</option>
-                }
-              </select></label
-            ><label
-              >Grand Prix<select class="ps-select" [(ngModel)]="round" (ngModelChange)="loadContext()">
-                @for (r of races(); track r.id) {
-                  <option [ngValue]="r.round">R{{ r.round }} · {{ r.name }}</option>
-                }
-              </select></label
-            >
-          </div>
+          @if (upcomingRaces().length) {
+            <div class="selectors">
+              <label
+                >Upcoming race<select
+                  class="ps-select"
+                  [(ngModel)]="selectedRaceId"
+                  (ngModelChange)="loadContext()"
+                >
+                  @for (r of upcomingRaces(); track r.id) {
+                    <option [ngValue]="r.id">{{ r.seasonYear }} · R{{ r.round }} · {{ r.name }}</option>
+                  }
+                </select></label
+              >
+            </div>
+          }
           <div class="grid-head">
             <h2>STARTING GRID</h2>
             <span>{{ entries().length }} drivers</span>
@@ -48,6 +47,13 @@ import { SeasonService } from '../../core/services/season.service';
           @if (contextLoading()) {
             <div class="state">Loading grid…</div>
           } @else if (entries().length) {
+            @if (provisional()) {
+              <p class="hint">
+                This race hasn't happened yet, so there's no confirmed grid. Showing the lineup
+                from the most recent race — drag drivers into the order you expect and run the
+                forecast.
+              </p>
+            }
             <div class="entries">
               @for (e of entries(); track e.driverRef; let i = $index) {
                 <div class="entry">
@@ -75,7 +81,9 @@ import { SeasonService } from '../../core/services/season.service';
               {{ loading() ? 'Predicting…' : 'Run prediction' }}
             </button>
           } @else {
-            <div class="state">No starting grid is stored for this race.</div>
+            <div class="state">
+              {{ upcomingRaces().length ? 'No starting grid is available for this race.' : 'No upcoming races on the calendar.' }}
+            </div>
           }
           @if (error()) {
             <p class="error">{{ error() }}</p>
@@ -209,6 +217,15 @@ import { SeasonService } from '../../core/services/season.service';
         color: var(--ps-red);
         font-size: 10px;
       }
+      .hint {
+        margin: 12px 0 0;
+        padding: 10px 12px;
+        border-radius: 6px;
+        background: var(--ps-surface-alt, rgba(127, 127, 127, 0.08));
+        color: var(--ps-text-secondary);
+        font-size: 10px;
+        line-height: 1.5;
+      }
       .state,
       .empty {
         display: grid;
@@ -262,51 +279,47 @@ import { SeasonService } from '../../core/services/season.service';
 export class PredictionsComponent {
   private readonly predictions = inject(PredictionService);
   private readonly raceService = inject(RaceService);
-  private readonly seasonService = inject(SeasonService);
-  readonly seasons = signal<number[]>([]);
-  readonly races = signal<Race[]>([]);
+  readonly upcomingRaces = signal<Race[]>([]);
   readonly entries = signal<PredictionContextEntry[]>([]);
   readonly results = signal<PredictionResult[]>([]);
   readonly loading = signal(false);
   readonly contextLoading = signal(false);
+  readonly provisional = signal(false);
   readonly error = signal('');
   readonly modelLoaded = signal(false);
   readonly runId = signal<number | null>(null);
   readonly up = ArrowUp;
   readonly down = ArrowDown;
-  season = 2024;
-  round = 1;
+  selectedRaceId: number | null = null;
   private circuitName = '';
   constructor() {
     this.predictions.health().subscribe({
       next: (h) => this.modelLoaded.set(h.model_loaded),
       error: () => this.modelLoaded.set(false),
     });
-    this.seasonService.getAll().subscribe({
-      next: (years) => {
-        this.seasons.set(years);
-        this.season = years[0] ?? this.season;
-        this.loadRaces();
-      },
-      error: () => this.loadRaces(),
-    });
-  }
-  loadRaces() {
-    this.raceService.getBySeason(this.season).subscribe({
+    this.raceService.getUpcoming().subscribe({
       next: (races) => {
-        this.races.set(races);
-        this.round = races[0]?.round ?? 1;
+        this.upcomingRaces.set(races);
+        this.selectedRaceId = races[0]?.id ?? null;
         this.loadContext();
       },
-      error: () => this.error.set('Unable to load races.'),
+      error: () => this.error.set('Unable to load upcoming races.'),
     });
   }
+  private get selectedRace(): Race | undefined {
+    return this.upcomingRaces().find((r) => r.id === this.selectedRaceId);
+  }
   loadContext() {
-    if (!this.round) return;
+    const race = this.selectedRace;
+    if (!race) {
+      this.entries.set([]);
+      return;
+    }
     this.contextLoading.set(true);
-    this.predictions.getContext(this.season, this.round).subscribe({
+    this.predictions.getContext(race.seasonYear, race.round).subscribe({
       next: (context) => {
         this.entries.set([...context.entries].sort((a, b) => a.gridPosition - b.gridPosition));
+        this.provisional.set(context.provisional);
         this.circuitName = context.race.circuitName;
         this.contextLoading.set(false);
       },
@@ -324,6 +337,8 @@ export class PredictionsComponent {
     this.entries.set(values);
   }
   predict() {
+    const race = this.selectedRace;
+    if (!race) return;
     this.loading.set(true);
     this.error.set('');
     const entries = this.entries().map((e, i) => ({
@@ -333,8 +348,8 @@ export class PredictionsComponent {
       driverNationality: e.driverNationality,
       constructorNationality: e.constructorNationality,
       gridPosition: i + 1,
-      seasonYear: this.season,
-      round: this.round,
+      seasonYear: race.seasonYear,
+      round: race.round,
     }));
     this.predictions.predict(entries).subscribe({
       next: (response) => {

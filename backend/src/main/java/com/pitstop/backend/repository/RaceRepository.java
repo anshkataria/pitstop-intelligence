@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,4 +25,7 @@ public interface RaceRepository extends JpaRepository<Race, Long> {
     List<Race> findBySeasonYearWithSeason(@Param("year") Integer year);
 
     Page<Race> findByCountry(String country, Pageable pageable);
+
+    @Query("SELECT r FROM Race r JOIN FETCH r.season WHERE r.raceDate >= :date ORDER BY r.raceDate ASC")
+    List<Race> findUpcoming(@Param("date") LocalDate date);
 }

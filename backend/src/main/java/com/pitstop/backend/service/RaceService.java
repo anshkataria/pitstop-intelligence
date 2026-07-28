@@ -10,6 +10,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -25,6 +26,13 @@ public class RaceService {
         Race race = raceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Race", "id", id));
         return raceMapper.toDto(race);
+    }
+
+    public List<RaceDto> findUpcoming() {
+        return raceRepository.findUpcoming(LocalDate.now())
+                .stream()
+                .map(raceMapper::toDto)
+                .toList();
     }
 
     @Cacheable(value = "races", key = "'season:' + #year")
