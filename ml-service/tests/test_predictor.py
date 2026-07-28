@@ -118,6 +118,6 @@ def test_predictor_clips_positions_and_uses_model_confidence_margin():
     assert outputs[0].predicted_position_rounded == 1
     assert outputs[0].confidence_range_low == 1
     assert outputs[0].confidence_range_high == 3
-    assert outputs[1].predicted_position_rounded == 20
-    assert outputs[1].confidence_range_low == 18
-    assert outputs[1].confidence_range_high == 20
+    assert outputs[1].predicted_position_rounded == 22
+    assert outputs[1].confidence_range_low == 20
+    assert outputs[1].confidence_range_high == 22

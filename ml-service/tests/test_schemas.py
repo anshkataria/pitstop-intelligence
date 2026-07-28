@@ -27,7 +27,7 @@ def test_grid_position_out_of_range_raises():
         DriverEntry(**make_entry(grid_position=0))
 
     with pytest.raises(ValidationError):
-        DriverEntry(**make_entry(grid_position=21))
+        DriverEntry(**make_entry(grid_position=23))
 
 
 def test_empty_entries_raises():
