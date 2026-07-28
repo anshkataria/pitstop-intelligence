@@ -137,7 +137,7 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
       }
       .selectors {
         display: grid;
-        grid-template-columns: 140px 1fr;
+        grid-template-columns: 1fr;
         gap: 12px;
         margin: 18px 0 28px;
       }

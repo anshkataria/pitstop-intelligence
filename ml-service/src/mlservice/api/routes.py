@@ -84,18 +84,21 @@ def predict(
         logger.error("Prediction failed: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail="Prediction failed")
 
-    results = [
-        PredictionResult(
-            driver_ref=entry.driver_ref,
-            constructor_ref=entry.constructor_ref,
-            grid_position=entry.grid_position,
-            predicted_position=output.predicted_position,
-            predicted_position_rounded=output.predicted_position_rounded,
-            confidence_range_low=output.confidence_range_low,
-            confidence_range_high=output.confidence_range_high,
-        )
-        for entry, output in zip(request.entries, outputs)
-    ]
+    results = sorted(
+        (
+            PredictionResult(
+                driver_ref=entry.driver_ref,
+                constructor_ref=entry.constructor_ref,
+                grid_position=entry.grid_position,
+                predicted_position=output.predicted_position,
+                predicted_position_rounded=output.predicted_position_rounded,
+                confidence_range_low=output.confidence_range_low,
+                confidence_range_high=output.confidence_range_high,
+            )
+            for entry, output in zip(request.entries, outputs)
+        ),
+        key=lambda result: result.predicted_position_rounded,
+    )
 
     try:
         run_id = save_prediction(settings, inputs, outputs, predictor.model_version)
