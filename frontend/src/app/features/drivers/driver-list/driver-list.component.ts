@@ -109,9 +109,19 @@ import { flagFor } from '../../../shared/utils/nationality-flag';
       }
       .driver-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        grid-template-columns: repeat(4, 1fr);
         gap: 14px;
         margin-bottom: 18px;
+      }
+      @media (max-width: 900px) {
+        .driver-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+      @media (max-width: 620px) {
+        .driver-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
       }
       .driver-card {
         position: relative;
