@@ -1,5 +1,8 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+# F1 grid size as of the 2026 season (Cadillac's entry brought the field to 22 cars).
+MAX_GRID_SIZE = 22
+
 
 class ApiModel(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
@@ -11,13 +14,13 @@ class DriverEntry(ApiModel):
     circuit_name: str = Field(..., min_length=1, examples=["Bahrain International Circuit"])
     driver_nationality: str = Field(..., min_length=1, examples=["British"])
     constructor_nationality: str = Field(..., min_length=1, examples=["German"])
-    grid_position: int = Field(..., ge=1, le=20, examples=[1])
+    grid_position: int = Field(..., ge=1, le=MAX_GRID_SIZE, examples=[1])
     season_year: int = Field(..., ge=1950, le=2100, examples=[2024])
     round: int = Field(..., ge=1, le=30, examples=[1])
 
 
 class PredictionRequest(ApiModel):
-    entries: list[DriverEntry] = Field(..., min_length=1, max_length=20)
+    entries: list[DriverEntry] = Field(..., min_length=1, max_length=MAX_GRID_SIZE)
 
     @field_validator("entries")
     @classmethod

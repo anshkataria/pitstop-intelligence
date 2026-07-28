@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from dataclasses import dataclass
 
+from mlservice.api.schemas import MAX_GRID_SIZE
 from mlservice.ml.features import FeatureEngineer, prepare_features, ENCODERS_PATH
 
 logger = logging.getLogger(__name__)
@@ -87,14 +88,14 @@ class RacePredictor:
 
         outputs = []
         for pred in raw_predictions:
-            pred_clipped = float(np.clip(pred, 1, 20))
+            pred_clipped = float(np.clip(pred, 1, MAX_GRID_SIZE))
             pred_rounded = int(round(pred_clipped))
             margin = self._confidence_margin
             outputs.append(PredictionOutput(
                 predicted_position=round(pred_clipped, 2),
                 predicted_position_rounded=pred_rounded,
                 confidence_range_low=max(1, pred_rounded - margin),
-                confidence_range_high=min(20, pred_rounded + margin),
+                confidence_range_high=min(MAX_GRID_SIZE, pred_rounded + margin),
             ))
 
         return outputs
