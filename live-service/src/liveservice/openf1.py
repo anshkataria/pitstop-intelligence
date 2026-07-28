@@ -19,6 +19,10 @@ class OpenF1Client:
 
     def get(self, endpoint: str, **filters: Any) -> list[dict[str, Any]]:
         response = self.session.get(f"{self.base_url}/{endpoint}", params=filters, timeout=20)
+        if response.status_code == 404:
+            # OpenF1 returns 404 (rather than 200 with []) when a query matches no
+            # rows, e.g. polling a session/endpoint combination with no fresh data.
+            return []
         response.raise_for_status()
         payload = response.json()
         if not isinstance(payload, list):

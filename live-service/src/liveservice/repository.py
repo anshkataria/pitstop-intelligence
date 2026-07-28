@@ -156,12 +156,12 @@ class LiveRepository:
                 ARRAY_REMOVE(ARRAY_AGG(l.lap_duration ORDER BY l.lap_number),NULL) lap_times,
                 s.compound, GREATEST(0,COALESCE(MAX(l.lap_number),0)-COALESCE(s.lap_start,0)) tyre_age,
                 (SELECT COUNT(*) FROM live_pit_stops p WHERE p.session_id=%s AND p.driver_number=d.driver_number) pit_stops,
-                (SELECT COUNT(*) FROM live_telemetry t WHERE t.session_id=d.session_id AND t.driver_number=d.driver_number) telemetry_samples,
-                (SELECT COUNT(*) FROM live_race_control rc WHERE rc.session_id=d.session_id AND rc.driver_number=d.driver_number) incident_mentions
+                (SELECT COUNT(*) FROM live_telemetry t WHERE t.session_id=%s AND t.driver_number=d.driver_number) telemetry_samples,
+                (SELECT COUNT(*) FROM live_race_control rc WHERE rc.session_id=%s AND rc.driver_number=d.driver_number) incident_mentions
                 FROM live_drivers d LEFT JOIN live_laps l ON l.session_id=d.session_id AND l.driver_number=d.driver_number
                 LEFT JOIN live_stints s ON s.session_id=d.session_id AND s.driver_number=d.driver_number
                     AND s.stint_number=(SELECT MAX(s2.stint_number) FROM live_stints s2 WHERE s2.session_id=d.session_id AND s2.driver_number=d.driver_number)
-                WHERE d.session_id=%s GROUP BY d.driver_number,s.compound,s.lap_start""", (session_id, session_id))
+                WHERE d.session_id=%s GROUP BY d.driver_number,s.compound,s.lap_start""", (session_id, session_id, session_id, session_id))
             drivers = list(cursor.fetchall())
             cursor.execute("""SELECT COUNT(*) FILTER (WHERE category ILIKE '%%incident%%'
                     OR message ILIKE '%%incident%%' OR message ILIKE '%%stopped%%') incidents,

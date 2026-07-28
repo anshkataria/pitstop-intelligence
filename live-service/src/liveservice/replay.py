@@ -85,8 +85,10 @@ class FastF1Replay:
             })
         if session.race_control_messages is not None:
             for _, row in session.race_control_messages.iterrows():
+                # Unlike laps/weather, race control message timestamps are already
+                # absolute wall-clock time, not an offset from session start.
                 data["race_control"].append({
-                    "date": _absolute(session.date, row.get("Time")), "category": row.get("Category"),
+                    "date": _absolute_timestamp(row.get("Time")), "category": row.get("Category"),
                     "flag": row.get("Flag"), "scope": row.get("Scope"), "sector": _integer(row.get("Sector")),
                     "lap_number": _integer(row.get("Lap")), "message": str(row.get("Message") or "Race control update"),
                 })
@@ -122,6 +124,12 @@ def _absolute(start: Any, delta: Any) -> str | None:
     if start is None or delta is None or delta != delta:
         return None
     return _iso(start + delta)
+
+
+def _absolute_timestamp(value: Any) -> str | None:
+    if value is None or value != value:
+        return None
+    return _iso(value)
 
 
 def _iso(value: Any) -> str:
