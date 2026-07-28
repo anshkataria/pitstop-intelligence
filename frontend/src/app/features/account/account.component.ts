@@ -3,25 +3,26 @@ import { Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
+import { LucideAngularModule, Eye, EyeOff, User, ShieldCheck } from 'lucide-angular';
 import { AuthService } from '../../core/services/auth.service';
 import { IntelligenceShellComponent } from '../../shared/components/intelligence-shell/intelligence-shell.component';
 
 @Component({
   selector: 'app-account',
   standalone: true,
-  imports: [ReactiveFormsModule, IntelligenceShellComponent],
+  imports: [ReactiveFormsModule, LucideAngularModule, IntelligenceShellComponent],
   template: `<app-intelligence-shell><div class="screen account-screen">
     <header class="screen-head"><div><p class="eyebrow">ACCOUNT</p><h1>Your workspace</h1><p>Identity and access settings for Pitstop Intelligence.</p></div></header>
 
     <div class="identity card">
       <div class="avatar">{{ initials() }}</div>
       <div><strong>{{ auth.user()?.displayName }}</strong><span>{{ auth.user()?.email }}</span></div>
-      <span class="role">{{ auth.user()?.role === 'ADMIN' ? 'Administrator' : 'Analyst' }}</span>
+      <span class="ps-badge" [class.ps-badge--warning]="auth.user()?.role === 'ADMIN'" [class.ps-badge--info]="auth.user()?.role !== 'ADMIN'">{{ auth.user()?.role === 'ADMIN' ? 'Administrator' : 'Analyst' }}</span>
     </div>
 
     <div class="settings-grid">
       <form class="card" [formGroup]="profileForm" (ngSubmit)="saveProfile()">
-        <div class="card-head"><div><p class="eyebrow">PROFILE</p><h2>Personal details</h2></div><p>Your email is the secure account identifier and cannot be changed here.</p></div>
+        <div class="card-head"><div class="head-row"><span class="head-icon profile"><lucide-icon [img]="userIcon" [size]="16" /></span><div><p class="eyebrow">PROFILE</p><h2>Personal details</h2></div></div><p>Your email is the secure account identifier and cannot be changed here.</p></div>
         <label>Display name<input formControlName="displayName" autocomplete="name" /></label>
         <label>Email<input [value]="auth.user()?.email ?? ''" disabled /></label>
         <button class="btn-primary" type="submit" [disabled]="profileForm.invalid || savingProfile()">
@@ -31,10 +32,32 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
       </form>
 
       <form class="card" [formGroup]="passwordForm" (ngSubmit)="changePassword()">
-        <div class="card-head"><div><p class="eyebrow">SECURITY</p><h2>Change password</h2></div><p>Changing your password signs out every active session.</p></div>
-        <label>Current password<input type="password" formControlName="currentPassword" autocomplete="current-password" /></label>
-        <label>New password<input type="password" formControlName="newPassword" autocomplete="new-password" /></label>
-        <label>Confirm new password<input type="password" formControlName="confirmPassword" autocomplete="new-password" /></label>
+        <div class="card-head"><div class="head-row"><span class="head-icon security"><lucide-icon [img]="shieldIcon" [size]="16" /></span><div><p class="eyebrow">SECURITY</p><h2>Change password</h2></div></div><p>Changing your password signs out every active session.</p></div>
+        <label>Current password
+          <div class="password-field">
+            <input [type]="showCurrent() ? 'text' : 'password'" formControlName="currentPassword" autocomplete="current-password" />
+            <button type="button" class="toggle-visibility" (click)="showCurrent.set(!showCurrent())" [attr.aria-label]="showCurrent() ? 'Hide password' : 'Show password'">
+              <lucide-icon [img]="showCurrent() ? eyeOffIcon : eyeIcon" [size]="16" />
+            </button>
+          </div>
+        </label>
+        <label>New password
+          <div class="password-field">
+            <input [type]="showNew() ? 'text' : 'password'" formControlName="newPassword" autocomplete="new-password" />
+            <button type="button" class="toggle-visibility" (click)="showNew.set(!showNew())" [attr.aria-label]="showNew() ? 'Hide password' : 'Show password'">
+              <lucide-icon [img]="showNew() ? eyeOffIcon : eyeIcon" [size]="16" />
+            </button>
+          </div>
+          <small class="hint">At least 8 characters.</small>
+        </label>
+        <label>Confirm new password
+          <div class="password-field">
+            <input [type]="showConfirm() ? 'text' : 'password'" formControlName="confirmPassword" autocomplete="new-password" />
+            <button type="button" class="toggle-visibility" (click)="showConfirm.set(!showConfirm())" [attr.aria-label]="showConfirm() ? 'Hide password' : 'Show password'">
+              <lucide-icon [img]="showConfirm() ? eyeOffIcon : eyeIcon" [size]="16" />
+            </button>
+          </div>
+        </label>
         <button class="btn-primary" type="submit" [disabled]="passwordForm.invalid || savingPassword()">
           {{ savingPassword() ? 'Updating…' : 'Update password' }}
         </button>
@@ -51,6 +74,13 @@ export class AccountComponent {
   readonly savingPassword = signal(false);
   readonly profileMessage = signal('');
   readonly passwordMessage = signal('');
+  readonly showCurrent = signal(false);
+  readonly showNew = signal(false);
+  readonly showConfirm = signal(false);
+  readonly eyeIcon = Eye;
+  readonly eyeOffIcon = EyeOff;
+  readonly userIcon = User;
+  readonly shieldIcon = ShieldCheck;
   readonly profileForm = new FormGroup({
     displayName: new FormControl(this.auth.user()?.displayName ?? '', [Validators.required, Validators.maxLength(120)]),
   });
