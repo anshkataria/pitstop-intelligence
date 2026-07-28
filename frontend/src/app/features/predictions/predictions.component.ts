@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, ArrowUp, ArrowDown } from 'lucide-angular';
 import { PredictionService } from '../../core/services/prediction.service';
@@ -7,11 +8,13 @@ import { RaceService } from '../../core/services/race.service';
 import { PredictionContextEntry, PredictionResult } from '../../core/models/prediction.model';
 import { Race } from '../../core/models/race.model';
 import { IntelligenceShellComponent } from '../../shared/components/intelligence-shell/intelligence-shell.component';
+import { colorForTeam } from '../../shared/utils/team-color';
+import { flagForCountry } from '../../shared/utils/country-flag';
 
 @Component({
   selector: 'app-predictions',
   standalone: true,
-  imports: [FormsModule, RouterLink, LucideAngularModule, IntelligenceShellComponent],
+  imports: [FormsModule, RouterLink, LucideAngularModule, DatePipe, IntelligenceShellComponent],
   template: `<app-intelligence-shell
     ><section class="screen">
       <header class="screen-head">
@@ -39,6 +42,11 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
                 </select></label
               >
             </div>
+            @if (selectedRace(); as race) {
+              <p class="race-meta">
+                {{ flagForCountry(race.country) }} {{ race.circuitName }} · {{ race.raceDate | date: 'MMM d, y' }}
+              </p>
+            }
           }
           <div class="grid-head">
             <h2>STARTING GRID</h2>
@@ -58,7 +66,9 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
               @for (e of entries(); track e.driverRef; let i = $index) {
                 <div class="entry">
                   <b>{{ i + 1 }}</b
-                  ><span class="avatar">{{ initials(e.driverName) }}</span>
+                  ><span class="avatar" [style.background]="teamColor(e.constructorName)">{{
+                    initials(e.driverName)
+                  }}</span>
                   <p>
                     <strong>{{ e.driverName }}</strong
                     ><small>{{ e.constructorName }}</small>
@@ -99,12 +109,17 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
           @if (results().length) {
             @for (r of results(); track r.driverRef) {
               <div class="result">
-                <span>{{ r.predictedPositionRounded }}</span>
+                <span [style.background]="teamColor(constructorName(r.driverRef))">{{
+                  r.predictedPositionRounded
+                }}</span>
                 <p>
                   <strong>{{ driverName(r.driverRef) }}</strong
                   ><small>{{ constructorName(r.driverRef) }} · Grid {{ r.gridPosition }}</small>
                 </p>
-                <b>{{ r.confidenceRangeLow }}–{{ r.confidenceRangeHigh }}</b>
+                <div class="range">
+                  <b>{{ r.confidenceRangeLow }}–{{ r.confidenceRangeHigh }}</b>
+                  <small>RANGE</small>
+                </div>
               </div>
             }
           } @else {
@@ -139,7 +154,7 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
         display: grid;
         grid-template-columns: 1fr;
         gap: 12px;
-        margin: 18px 0 28px;
+        margin: 18px 0 8px;
       }
       .selectors label {
         font-size: 9px;
@@ -149,6 +164,11 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
         display: block;
         width: 100%;
         margin-top: 7px;
+      }
+      .race-meta {
+        margin: 0 0 24px;
+        color: var(--ps-text-secondary);
+        font-size: 10px;
       }
       .grid-head,
       .output-head {
@@ -248,9 +268,8 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        background: var(--ps-text);
         color: #fff;
-        font: 500 11px var(--ps-font-mono);
+        font: 600 11px var(--ps-font-mono);
       }
       .result p {
         margin: 0;
@@ -264,9 +283,20 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
         color: var(--ps-text-secondary);
         font-size: 9px;
       }
-      .result > b {
-        font: 500 11px var(--ps-font-mono);
+      .range {
+        text-align: right;
+      }
+      .range b {
+        display: block;
+        font: 600 12px var(--ps-font-mono);
         color: var(--ps-red);
+      }
+      .range small {
+        display: block;
+        margin-top: 2px;
+        color: var(--ps-text-muted);
+        font: 500 7px var(--ps-font-mono);
+        letter-spacing: 0.05em;
       }
       @media (max-width: 850px) {
         .prediction-layout {
@@ -290,6 +320,8 @@ export class PredictionsComponent {
   readonly runId = signal<number | null>(null);
   readonly up = ArrowUp;
   readonly down = ArrowDown;
+  readonly teamColor = colorForTeam;
+  readonly flagForCountry = flagForCountry;
   selectedRaceId: number | null = null;
   private circuitName = '';
   constructor() {
@@ -306,11 +338,11 @@ export class PredictionsComponent {
       error: () => this.error.set('Unable to load upcoming races.'),
     });
   }
-  private get selectedRace(): Race | undefined {
+  selectedRace(): Race | undefined {
     return this.upcomingRaces().find((r) => r.id === this.selectedRaceId);
   }
   loadContext() {
-    const race = this.selectedRace;
+    const race = this.selectedRace();
     if (!race) {
       this.entries.set([]);
       return;
@@ -337,7 +369,7 @@ export class PredictionsComponent {
     this.entries.set(values);
   }
   predict() {
-    const race = this.selectedRace;
+    const race = this.selectedRace();
     if (!race) return;
     this.loading.set(true);
     this.error.set('');

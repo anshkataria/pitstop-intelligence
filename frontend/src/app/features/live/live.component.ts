@@ -2,47 +2,205 @@ import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
+import {
+  LucideAngularModule,
+  Flag,
+  MapPin,
+  Radio,
+  Clock,
+  Gauge,
+  Thermometer,
+  Wind,
+  Droplets,
+  Zap,
+  CircleDot,
+  Timer,
+  TriangleAlert,
+  ShieldAlert,
+  Activity,
+} from 'lucide-angular';
 import { IntelligenceShellComponent } from '../../shared/components/intelligence-shell/intelligence-shell.component';
 import { HistoricalChartSeries, HistoricalLineChartComponent } from '../../shared/components/charts/historical-line-chart.component';
 import { LiveIntelligence, LiveLap, LivePitStop, LiveSession, LiveStint, LiveTelemetryPoint, LiveTimingRow, LiveWeather, RaceControlMessage } from '../../core/models/live.model';
 import { LiveService } from '../../core/services/live.service';
 
+const MODEL_META: Record<string, { label: string; icon: unknown }> = {
+  PIT_WINDOW: { label: 'Pit window', icon: Timer },
+  TYRE_DEGRADATION: { label: 'Tyre degradation', icon: Gauge },
+  SAFETY_CAR: { label: 'Safety car risk', icon: TriangleAlert },
+  DNF: { label: 'DNF risk', icon: ShieldAlert },
+  STRATEGY: { label: 'Strategy call', icon: Activity },
+};
+
 @Component({
-  selector: 'app-live', standalone: true,
-  imports: [CommonModule, FormsModule, IntelligenceShellComponent, HistoricalLineChartComponent],
-  template: `<app-intelligence-shell><section class="screen live-screen">
-    <header class="screen-head"><div><p class="eyebrow"><i [class.connected]="connected()"></i>{{connected()?'STREAM CONNECTED':'REPLAY / RECENT DATA'}}</p><h1>Live Race Intelligence</h1><p>Timing, telemetry, strategy and race-control signals from one session.</p></div>
-      <select class="ps-select" [ngModel]="sessionKey()" (ngModelChange)="selectSession($event)">@for(session of sessions();track session.sessionKey){<option [value]="session.sessionKey">{{session.year}} · {{session.countryName}} · {{session.sessionName}}</option>}</select>
-    </header>
-    @if(loading()){<div class="card state">Loading session intelligence…</div>}
-    @else if(error()){<div class="card state">{{error()}}</div>}
-    @else if(activeSession();as session){
-      <section class="session-strip"><div><small>SESSION</small><strong>{{session.sessionName}}</strong></div><div><small>CIRCUIT</small><strong>{{session.circuitName||'—'}}</strong></div><div><small>PROVIDER</small><strong>{{session.provider}}</strong></div><div><small>UPDATED</small><strong>{{lastUpdated()|date:'HH:mm:ss'}}</strong></div></section>
-      <div class="live-grid">
-        <article class="card timing"><div class="card-head"><div><h2>TIMING TOWER</h2><p>Position, interval and completed lap</p></div><span>{{timing().length}} cars</span></div>
-          @for(row of timing();track row.driverNumber){<button type="button" class="timing-row" [class.selected]="row.driverNumber===selectedDriver()" (click)="selectDriver(row.driverNumber)"><b>{{row.position??'—'}}</b><i [style.background]="'#'+(row.teamColour||'555555')"></i><strong>{{row.driverCode||row.driverNumber}}</strong><span>{{row.teamName||row.fullName}}</span><em>{{row.gapToLeader||row.intervalToLeader||'—'}}</em><small>L{{row.lapNumber}}</small></button>}@empty{<div class="empty">No timing records have arrived.</div>}
-        </article>
-        <article class="card weather"><h2>TRACK CONDITIONS</h2>@if(latestWeather();as weather){<div class="weather-value"><strong>{{weather.trackTemperature??'—'}}°</strong><span>Track temperature</span></div><div class="weather-grid"><span>Air <b>{{weather.airTemperature??'—'}}°C</b></span><span>Humidity <b>{{weather.humidity??'—'}}%</b></span><span>Wind <b>{{weather.windSpeed??'—'}} m/s</b></span><span>Rain <b>{{weather.rainfall?'Detected':'Clear'}}</b></span></div>}@else{<div class="empty">No weather sample.</div>}</article>
-        <article class="card telemetry"><div class="card-head"><div><h2>DRIVER TELEMETRY</h2><p>{{selectedDriverName()}}</p></div>
-          <div class="tab-switch">
-            <button type="button" [class.active]="telemetryTab()==='speed'" (click)="telemetryTab.set('speed')">Speed</button>
-            <button type="button" [class.active]="telemetryTab()==='inputs'" (click)="telemetryTab.set('inputs')">Throttle / brake</button>
-            <button type="button" [class.active]="telemetryTab()==='sectors'" (click)="telemetryTab.set('sectors')">Sectors</button>
-          </div>
+  selector: 'app-live',
+  standalone: true,
+  imports: [CommonModule, FormsModule, LucideAngularModule, IntelligenceShellComponent, HistoricalLineChartComponent],
+  template: `<app-intelligence-shell
+    ><section class="screen live-screen">
+      <header class="screen-head">
+        <div>
+          <p class="eyebrow"><i [class.connected]="connected()"></i>{{ connected() ? 'STREAM CONNECTED' : 'REPLAY / RECENT DATA' }}</p>
+          <h1>Live Race Intelligence</h1>
+          <p>Timing, telemetry, strategy and race-control signals from one session.</p>
         </div>
-        <div class="car-state"><span>GEAR <b>{{latestTelemetry()?.gear??'—'}}</b></span><span>RPM <b>{{latestTelemetry()?.rpm??'—'}}</b></span><span>DRS <b>{{drsState()}}</b></span><span>SPEED <b>{{latestTelemetry()?.speed??'—'}} km/h</b></span><span>LAST LAP <b>{{latestLap()?.lapDuration??'—'}} s</b></span></div>
-          @switch (telemetryTab()) {
-            @case ('speed') { <app-historical-line-chart [series]="speedSeries()" xLabel="Sample" yLabel="km/h" ariaLabel="Selected driver speed telemetry"/> }
-            @case ('inputs') { <app-historical-line-chart [series]="inputSeries()" xLabel="Sample" yLabel="Percent" ariaLabel="Selected driver throttle and brake telemetry"/> }
-            @case ('sectors') { <app-historical-line-chart [series]="sectorSeries()" xLabel="Lap" yLabel="Seconds" ariaLabel="Selected driver sector time history"/> }
+        <select class="ps-select" [ngModel]="sessionKey()" (ngModelChange)="selectSession($event)">
+          @for (session of sessions(); track session.sessionKey) {
+            <option [value]="session.sessionKey">{{ session.year }} · {{ session.countryName }} · {{ session.sessionName }}</option>
           }
-        </article>
-        <article class="card strategy-feed"><h2>STINTS & PIT STOPS</h2>@for(stint of selectedStints();track stint.stintNumber){<div class="stint"><b>{{stint.compound||'UNKNOWN'}}</b><span>L{{stint.lapStart??'—'}}–{{stint.lapEnd??'current'}}</span><small>Start age {{stint.tyreAgeAtStart??0}} laps</small></div>}@for(pit of selectedPits();track pit.lapNumber){<div class="pit"><b>PIT · L{{pit.lapNumber}}</b><span>{{pit.stopDuration??pit.laneDuration??'—'}} s</span></div>}@empty{<div class="empty">No pit-stop events.</div>}</article>
-        <article class="card intelligence"><h2>LIVE MODELS</h2><div class="model-grid">@for(item of selectedIntelligence();track item.modelType){<div><small>{{modelLabel(item.modelType)}}</small><strong>{{modelValue(item)}}</strong><span>{{item.confidence*100|number:'1.0-0'}}% confidence</span></div>}@empty{<div class="empty">Waiting for sufficient telemetry.</div>}</div></article>
-        <article class="card control"><h2>RACE CONTROL</h2>@for(message of raceControl().slice(0,8);track message.occurredAt+message.message){<div class="control-row"><span [class.alert]="message.flag">{{message.flag||message.category||'INFO'}}</span><p>{{message.message}}<small>{{message.occurredAt|date:'HH:mm:ss'}} · Lap {{message.lapNumber??'—'}}</small></p></div>}@empty{<div class="empty">No race-control messages.</div>}</article>
-      </div>
-    }@else{<div class="card state">No live or replay sessions are stored. Start a FastF1 replay or enable the OpenF1 worker.</div>}
-  </section></app-intelligence-shell>`,
+        </select>
+      </header>
+
+      @if (loading()) {
+        <div class="card state">Loading session intelligence…</div>
+      } @else if (error()) {
+        <div class="card state">{{ error() }}</div>
+      } @else if (activeSession(); as session) {
+        <section class="stat-strip">
+          <article class="card stat">
+            <lucide-icon [img]="flagIcon" [size]="16" />
+            <small>SESSION</small>
+            <strong>{{ session.sessionName }}</strong>
+          </article>
+          <article class="card stat">
+            <lucide-icon [img]="mapPinIcon" [size]="16" />
+            <small>CIRCUIT</small>
+            <strong>{{ session.circuitName || '—' }}</strong>
+          </article>
+          <article class="card stat">
+            <lucide-icon [img]="radioIcon" [size]="16" />
+            <small>DATA SOURCE</small>
+            <strong>{{ session.provider }}</strong>
+          </article>
+          <article class="card stat">
+            <lucide-icon [img]="clockIcon" [size]="16" />
+            <small>LAST UPDATED</small>
+            <strong>{{ lastUpdated() | date: 'HH:mm:ss' }}</strong>
+          </article>
+        </section>
+
+        <div class="live-grid">
+          <article class="card timing">
+            <div class="card-head">
+              <div><h2>TIMING TOWER</h2><p>Position, interval and completed lap</p></div>
+              <span>{{ timing().length }} cars</span>
+            </div>
+            @for (row of timing(); track row.driverNumber) {
+              <button
+                type="button"
+                class="timing-row"
+                [class.selected]="row.driverNumber === selectedDriver()"
+                (click)="selectDriver(row.driverNumber)"
+              >
+                <b>{{ row.position ?? '—' }}</b>
+                <i [style.background]="'#' + (row.teamColour || '555555')"></i>
+                <strong>{{ row.driverCode || row.driverNumber }}</strong>
+                <span>{{ row.teamName || row.fullName }}</span>
+                <em>{{ row.gapToLeader || row.intervalToLeader || '—' }}</em>
+                <small>Lap {{ row.lapNumber }}</small>
+              </button>
+            } @empty {
+              <div class="empty">No timing records have arrived.</div>
+            }
+          </article>
+
+          <article class="card weather">
+            <div class="card-head"><div><h2>TRACK CONDITIONS</h2></div></div>
+            @if (latestWeather(); as weather) {
+              <div class="weather-value">
+                <strong>{{ weather.trackTemperature ?? '—' }}°</strong>
+                <span>Track temperature</span>
+              </div>
+              <div class="weather-grid">
+                <span><lucide-icon [img]="thermometerIcon" [size]="13" />Air<b>{{ weather.airTemperature ?? '—' }}°C</b></span>
+                <span><lucide-icon [img]="dropletsIcon" [size]="13" />Humidity<b>{{ weather.humidity ?? '—' }}%</b></span>
+                <span><lucide-icon [img]="windIcon" [size]="13" />Wind<b>{{ weather.windSpeed ?? '—' }} m/s</b></span>
+                <span><lucide-icon [img]="dropletsIcon" [size]="13" />Rain<b>{{ weather.rainfall ? 'Detected' : 'Clear' }}</b></span>
+              </div>
+            } @else {
+              <div class="empty">No weather sample.</div>
+            }
+          </article>
+
+          <article class="card telemetry">
+            <div class="card-head">
+              <div><h2>DRIVER TELEMETRY</h2><p>{{ selectedDriverName() }}</p></div>
+              <div class="tab-switch">
+                <button type="button" [class.active]="telemetryTab() === 'speed'" (click)="telemetryTab.set('speed')">Speed</button>
+                <button type="button" [class.active]="telemetryTab() === 'inputs'" (click)="telemetryTab.set('inputs')">Throttle / brake</button>
+                <button type="button" [class.active]="telemetryTab() === 'sectors'" (click)="telemetryTab.set('sectors')">Sectors</button>
+              </div>
+            </div>
+            <div class="car-state">
+              <span><lucide-icon [img]="circleDotIcon" [size]="13" /><small>GEAR</small><b>{{ latestTelemetry()?.gear ?? '—' }}</b></span>
+              <span><lucide-icon [img]="zapIcon" [size]="13" /><small>RPM</small><b>{{ latestTelemetry()?.rpm ?? '—' }}</b></span>
+              <span><lucide-icon [img]="radioIcon" [size]="13" /><small>DRS</small><b>{{ drsState() }}</b></span>
+              <span><lucide-icon [img]="gaugeIcon" [size]="13" /><small>SPEED</small><b>{{ latestTelemetry()?.speed ?? '—' }} km/h</b></span>
+              <span><lucide-icon [img]="timerIcon" [size]="13" /><small>LAST LAP</small><b>{{ latestLap()?.lapDuration ?? '—' }} s</b></span>
+            </div>
+            @switch (telemetryTab()) {
+              @case ('speed') { <app-historical-line-chart [series]="speedSeries()" xLabel="Sample" yLabel="km/h" ariaLabel="Selected driver speed telemetry" /> }
+              @case ('inputs') { <app-historical-line-chart [series]="inputSeries()" xLabel="Sample" yLabel="Percent" ariaLabel="Selected driver throttle and brake telemetry" /> }
+              @case ('sectors') { <app-historical-line-chart [series]="sectorSeries()" xLabel="Lap" yLabel="Seconds" ariaLabel="Selected driver sector time history" /> }
+            }
+          </article>
+
+          <article class="card strategy-feed">
+            <div class="card-head"><div><h2>TYRE STRATEGY</h2><p>Stints and pit-stop history</p></div></div>
+            @for (stint of selectedStints(); track stint.stintNumber) {
+              <div class="stint">
+                <b>{{ stint.compound || 'UNKNOWN' }}</b>
+                <span>Laps {{ stint.lapStart ?? '—' }}–{{ stint.lapEnd ?? 'current' }}</span>
+                <small>Started on tyre age {{ stint.tyreAgeAtStart ?? 0 }} laps</small>
+              </div>
+            }
+            @for (pit of selectedPits(); track pit.lapNumber) {
+              <div class="pit">
+                <b>Pit stop · Lap {{ pit.lapNumber }}</b>
+                <span>{{ pit.stopDuration ?? pit.laneDuration ?? '—' }} s</span>
+              </div>
+            }
+            @empty {
+              <div class="empty">No pit-stop events.</div>
+            }
+          </article>
+
+          <article class="card intelligence">
+            <div class="card-head"><div><h2>PREDICTIVE SIGNALS</h2><p>Live model outputs for the selected driver</p></div></div>
+            <div class="model-grid">
+              @for (item of selectedIntelligence(); track item.modelType) {
+                <div class="model-card">
+                  <lucide-icon [img]="modelIcon(item.modelType)" [size]="15" />
+                  <small>{{ modelLabel(item.modelType) }}</small>
+                  <strong>{{ modelValue(item) }}</strong>
+                  <span>{{ item.confidence * 100 | number: '1.0-0' }}% confidence</span>
+                </div>
+              } @empty {
+                <div class="empty">Waiting for sufficient telemetry.</div>
+              }
+            </div>
+          </article>
+
+          <article class="card control">
+            <div class="card-head"><div><h2>RACE CONTROL</h2></div></div>
+            @for (message of raceControl().slice(0, 8); track message.occurredAt + message.message) {
+              <div class="control-row">
+                <span class="ps-badge" [class.ps-badge--warning]="message.flag" [class.ps-badge--neutral]="!message.flag">{{ message.flag || message.category || 'INFO' }}</span>
+                <p>
+                  {{ message.message }}
+                  <small>{{ message.occurredAt | date: 'HH:mm:ss' }} · Lap {{ message.lapNumber ?? '—' }}</small>
+                </p>
+              </div>
+            } @empty {
+              <div class="empty">No race-control messages.</div>
+            }
+          </article>
+        </div>
+      } @else {
+        <div class="card state">No live or replay sessions are stored. Start a FastF1 replay or enable the OpenF1 worker.</div>
+      }
+    </section></app-intelligence-shell
+  >`,
   styleUrl: './live.component.scss',
 })
 export class LiveComponent implements OnDestroy {
@@ -77,6 +235,19 @@ export class LiveComponent implements OnDestroy {
     ];
   });
 
+  readonly flagIcon = Flag;
+  readonly mapPinIcon = MapPin;
+  readonly radioIcon = Radio;
+  readonly clockIcon = Clock;
+  readonly gaugeIcon = Gauge;
+  readonly thermometerIcon = Thermometer;
+  readonly windIcon = Wind;
+  readonly dropletsIcon = Droplets;
+  readonly zapIcon = Zap;
+  readonly circleDotIcon = CircleDot;
+  readonly timerIcon = Timer;
+  readonly activityIcon = Activity;
+
   constructor(){this.service.sessions().subscribe({next:sessions=>{this.sessions.set(sessions);this.loading.set(false);if(sessions[0])this.selectSession(sessions[0].sessionKey);},error:()=>{this.error.set('Unable to load live sessions.');this.loading.set(false);}});}
   selectSession(key:string){this.sessionKey.set(key);this.streamController?.abort();this.loadSnapshot();this.connect();}
   selectDriver(number:number){this.selectedDriver.set(number);this.loadTelemetry();}
@@ -85,7 +256,8 @@ export class LiveComponent implements OnDestroy {
   connect(){clearTimeout(this.reconnectTimer);const controller=new AbortController();this.streamController=controller;this.service.stream(this.sessionKey(),controller.signal,event=>{this.connected.set(true);if(event.event!=='heartbeat'){clearTimeout(this.refreshTimer);this.refreshTimer=setTimeout(()=>this.loadSnapshot(),750);}}).catch(()=>undefined).finally(()=>{if(!controller.signal.aborted&&this.streamController===controller){this.connected.set(false);this.reconnectTimer=setTimeout(()=>this.connect(),3000);}});}
   samples(){const data=this.telemetry();return data.length>300?data.slice(-300):data;}
   drsState(){const drs=this.latestTelemetry()?.drs;return drs==null?'—':drs>=10?'OPEN':'CLOSED';}
-  modelLabel(type:string){return type.replaceAll('_',' ');}
-  modelValue(item:LiveIntelligence){const o=item.output;if(item.modelType==='PIT_WINDOW')return `L${o['windowStart']}–${o['windowEnd']}`;if(item.modelType==='TYRE_DEGRADATION')return `${o['secondsPerLap']} s/lap`;if(item.modelType==='SAFETY_CAR'||item.modelType==='DNF')return `${Math.round(Number(o['probability'])*100)}%`;return String(o['recommended']??o['risk']??'Ready');}
+  modelLabel(type:string){return MODEL_META[type]?.label ?? type.replaceAll('_',' ');}
+  modelIcon(type:string){return (MODEL_META[type]?.icon as typeof Activity) ?? this.activityIcon;}
+  modelValue(item:LiveIntelligence){const o=item.output;if(item.modelType==='PIT_WINDOW')return `Lap ${o['windowStart']}–${o['windowEnd']}`;if(item.modelType==='TYRE_DEGRADATION')return `${o['secondsPerLap']} s/lap`;if(item.modelType==='SAFETY_CAR'||item.modelType==='DNF')return `${Math.round(Number(o['probability'])*100)}%`;return String(o['recommended']??o['risk']??'Ready');}
   ngOnDestroy(){this.streamController?.abort();clearTimeout(this.refreshTimer);clearTimeout(this.reconnectTimer);}
 }
