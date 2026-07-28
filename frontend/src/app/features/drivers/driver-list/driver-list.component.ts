@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
@@ -23,7 +23,7 @@ import { flagFor } from '../../../shared/utils/nationality-flag';
         <div>
           <p class="eyebrow">DRIVERS</p>
           <h1>The Grid</h1>
-          <p>Search the driver roster.</p>
+          <p>Ranked by career wins, across every season on record.</p>
         </div>
         <span class="count">{{ total() }} drivers</span>
       </header>
@@ -41,8 +41,9 @@ import { flagFor } from '../../../shared/utils/nationality-flag';
         <div class="card state">No drivers found.</div>
       } @else {
         <div class="driver-grid">
-          @for (d of drivers(); track d.id) {
+          @for (d of drivers(); track d.id; let i = $index) {
             <a class="card driver-card" [routerLink]="['/drivers', d.id]">
+              <span class="rank" [class.top3]="page() === 0 && i < 3">{{ page() * 12 + i + 1 }}</span>
               <div class="avatar">
                 {{ d.firstName[0] }}{{ d.lastName[0] }}
                 @if (flagFor(d.nationality); as flag) {
@@ -51,6 +52,10 @@ import { flagFor } from '../../../shared/utils/nationality-flag';
               </div>
               <strong>{{ d.fullName }}</strong>
               <span class="ref">{{ d.driverRef }}</span>
+              <div class="career-stats">
+                <span><b>{{ d.wins }}</b>wins</span>
+                <span><b>{{ d.podiums }}</b>podiums</span>
+              </div>
               <div class="meta">
                 <span>{{ d.nationality || '—' }}</span>
                 <span>{{ d.dateOfBirth || '—' }}</span>
@@ -60,11 +65,11 @@ import { flagFor } from '../../../shared/utils/nationality-flag';
         </div>
       }
       <footer class="pagination card">
-        <span>Page {{ page() + 1 }}</span>
+        <span>Page {{ page() + 1 }} of {{ totalPages() }}</span>
         <div>
           <button (click)="load(page() - 1)" [disabled]="page() === 0">
             <lucide-icon [img]="left" [size]="16" /></button
-          ><button (click)="load(page() + 1)" [disabled]="drivers().length < 10">
+          ><button (click)="load(page() + 1)" [disabled]="page() + 1 >= totalPages()">
             <lucide-icon [img]="right" [size]="16" />
           </button>
         </div>
@@ -109,6 +114,7 @@ import { flagFor } from '../../../shared/utils/nationality-flag';
         margin-bottom: 18px;
       }
       .driver-card {
+        position: relative;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -124,6 +130,16 @@ import { flagFor } from '../../../shared/utils/nationality-flag';
       .driver-card:hover {
         transform: translateY(-2px);
         border-color: var(--ps-red);
+      }
+      .rank {
+        position: absolute;
+        top: 14px;
+        left: 16px;
+        color: var(--ps-text-muted);
+        font: 600 11px var(--ps-font-mono);
+      }
+      .rank.top3 {
+        color: var(--ps-red);
       }
       .avatar {
         position: relative;
@@ -155,6 +171,28 @@ import { flagFor } from '../../../shared/utils/nationality-flag';
       .ref {
         color: var(--ps-text-muted);
         font: 500 10px var(--ps-font-mono);
+      }
+      .career-stats {
+        display: flex;
+        gap: 14px;
+        padding-top: 8px;
+        border-top: 1px solid var(--ps-border);
+        width: 100%;
+        justify-content: center;
+      }
+      .career-stats span {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        color: var(--ps-text-muted);
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .career-stats b {
+        color: var(--ps-text);
+        font: 600 15px var(--ps-font-mono);
       }
       .meta {
         display: flex;
@@ -194,6 +232,7 @@ export class DriverListComponent implements OnInit {
   readonly loading = this.store.selectSignal(selectDriversLoading);
   readonly total = this.store.selectSignal(selectDriversTotal);
   readonly page = this.store.selectSignal(selectDriversPage);
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.total() / 12)));
   search = '';
   readonly searchIcon = Search;
   readonly left = ChevronLeft;

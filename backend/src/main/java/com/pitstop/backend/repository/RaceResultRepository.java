@@ -28,4 +28,6 @@ public interface RaceResultRepository extends JpaRepository<RaceResult, Long> {
 
     @EntityGraph(attributePaths = {"race", "race.season", "driver", "constructor"})
     List<RaceResult> findByRaceSeasonYearOrderByRaceRoundAscFinishPositionAsc(Integer year);
+
+    List<RaceResult> findByDriverIdIn(List<Long> driverIds);
 }

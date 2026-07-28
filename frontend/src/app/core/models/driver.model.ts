@@ -6,6 +6,9 @@ export interface Driver {
   fullName: string;
   nationality: string;
   dateOfBirth: string;
+  wins: number;
+  podiums: number;
+  points: number;
 }
 
 export interface PagedResponse<T> {
