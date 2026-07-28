@@ -107,11 +107,9 @@ import { flagForCountry } from '../../shared/utils/country-flag';
             }
           </div>
           @if (results().length) {
-            @for (r of results(); track r.driverRef) {
+            @for (r of results(); track r.driverRef; let i = $index) {
               <div class="result">
-                <span [style.background]="teamColor(constructorName(r.driverRef))">{{
-                  r.predictedPositionRounded
-                }}</span>
+                <span [style.background]="teamColor(constructorName(r.driverRef))">{{ i + 1 }}</span>
                 <p>
                   <strong>{{ driverName(r.driverRef) }}</strong
                   ><small>{{ constructorName(r.driverRef) }} · Grid {{ r.gridPosition }}</small>

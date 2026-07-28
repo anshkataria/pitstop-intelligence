@@ -60,9 +60,9 @@ import { IntelligenceShellComponent } from '../../shared/components/intelligence
               }
             }
             <h2 class="classification">PREDICTED VS ACTUAL</h2>
-            @for (result of run.results; track result.driverRef) {
+            @for (result of run.results; track result.driverRef; let i = $index) {
               <div class="result">
-                <b>{{ result.predictedPositionRounded }}</b>
+                <b>{{ i + 1 }}</b>
                 <p>
                   <strong>{{ formatRef(result.driverRef) }}</strong>
                   <small>{{ formatRef(result.constructorRef) }} · Grid {{ result.gridPosition }}</small>
