@@ -21,8 +21,19 @@ import {
 } from 'lucide-angular';
 import { IntelligenceShellComponent } from '../../shared/components/intelligence-shell/intelligence-shell.component';
 import { HistoricalChartSeries, HistoricalLineChartComponent } from '../../shared/components/charts/historical-line-chart.component';
-import { LiveIntelligence, LiveLap, LivePitStop, LiveSession, LiveStint, LiveTelemetryPoint, LiveTimingRow, LiveWeather, RaceControlMessage } from '../../core/models/live.model';
+import { LiveIntelligence, LiveLap, LivePitStop, LiveSession, LiveStint, LiveTelemetryPoint, LiveTimingRow, LiveWeather, RaceControlMessage, ReplayStatus } from '../../core/models/live.model';
 import { LiveService } from '../../core/services/live.service';
+import { AuthService } from '../../core/services/auth.service';
+
+const REPLAY_SESSIONS: { value: string; label: string }[] = [
+  { value: 'R', label: 'Race' },
+  { value: 'Q', label: 'Qualifying' },
+  { value: 'S', label: 'Sprint' },
+  { value: 'SQ', label: 'Sprint qualifying' },
+  { value: 'FP1', label: 'Practice 1' },
+  { value: 'FP2', label: 'Practice 2' },
+  { value: 'FP3', label: 'Practice 3' },
+];
 
 const MODEL_META: Record<string, { label: string; icon: unknown }> = {
   PIT_WINDOW: { label: 'Pit window', icon: Timer },
@@ -50,6 +61,42 @@ const MODEL_META: Record<string, { label: string; icon: unknown }> = {
           }
         </select>
       </header>
+
+      @if (isAdmin()) {
+        <section class="card replay-panel">
+          <div class="card-head">
+            <div><h2>FASTF1 REPLAY</h2><p>Import a past session so it appears in the session list above.</p></div>
+            @if (replayStatus(); as status) {
+              <span
+                class="ps-badge"
+                [class.ps-badge--live]="status.state === 'SUCCEEDED'"
+                [class.ps-badge--info]="status.state === 'RUNNING'"
+                [class.ps-badge--warning]="status.state === 'FAILED'"
+                [class.ps-badge--neutral]="status.state === 'IDLE'"
+              >{{ replayStatusLabel(status) }}</span>
+            }
+          </div>
+          <form class="replay-form" (ngSubmit)="startReplay()">
+            <label>Year
+              <input class="replay-input" type="number" [(ngModel)]="replayYear" name="replayYear" min="2018" max="2100" required />
+            </label>
+            <label>Event
+              <input class="replay-input" type="text" [(ngModel)]="replayEvent" name="replayEvent" placeholder="Monaco or round number" required />
+            </label>
+            <label>Session
+              <select class="ps-select replay-input" [(ngModel)]="replaySession" name="replaySession">
+                @for (option of replaySessionOptions; track option.value) {
+                  <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+            </label>
+            <button class="btn-primary" type="submit" [disabled]="replayBusy()">
+              {{ replayBusy() ? 'Importing…' : 'Start replay' }}
+            </button>
+          </form>
+          @if (replayError()) { <p class="feedback error" role="alert">{{ replayError() }}</p> }
+        </section>
+      }
 
       @if (loading()) {
         <div class="card state">Loading session intelligence…</div>
@@ -136,7 +183,7 @@ const MODEL_META: Record<string, { label: string; icon: unknown }> = {
               <span><lucide-icon [img]="zapIcon" [size]="13" /><small>RPM</small><b>{{ latestTelemetry()?.rpm ?? '—' }}</b></span>
               <span><lucide-icon [img]="radioIcon" [size]="13" /><small>DRS</small><b>{{ drsState() }}</b></span>
               <span><lucide-icon [img]="gaugeIcon" [size]="13" /><small>SPEED</small><b>{{ latestTelemetry()?.speed ?? '—' }} km/h</b></span>
-              <span><lucide-icon [img]="timerIcon" [size]="13" /><small>LAST LAP</small><b>{{ latestLap()?.lapDuration ?? '—' }} s</b></span>
+              <span><lucide-icon [img]="timerIcon" [size]="13" /><small>LAST LAP</small><b>{{ formatLapTime(latestLap()?.lapDuration) }}</b></span>
             </div>
             @switch (telemetryTab()) {
               @case ('speed') { <app-historical-line-chart [series]="speedSeries()" xLabel="Sample" yLabel="km/h" ariaLabel="Selected driver speed telemetry" /> }
@@ -156,8 +203,8 @@ const MODEL_META: Record<string, { label: string; icon: unknown }> = {
             }
             @for (pit of selectedPits(); track pit.lapNumber) {
               <div class="pit">
-                <b>Pit stop · Lap {{ pit.lapNumber }}</b>
-                <span>{{ pit.stopDuration ?? pit.laneDuration ?? '—' }} s</span>
+                <b>{{ pitDurationLabel(pit) }} · Lap {{ pit.lapNumber }}</b>
+                <span>{{ pitDurationText(pit) }}</span>
               </div>
             }
             @empty {
@@ -205,6 +252,16 @@ const MODEL_META: Record<string, { label: string; icon: unknown }> = {
 })
 export class LiveComponent implements OnDestroy {
   private readonly service = inject(LiveService);
+  private readonly auth = inject(AuthService);
+  readonly isAdmin = computed(()=>this.auth.user()?.role === 'ADMIN');
+  readonly replaySessionOptions = REPLAY_SESSIONS;
+  replayYear = new Date().getFullYear();
+  replayEvent = '';
+  replaySession = 'R';
+  readonly replayBusy = signal(false);
+  readonly replayError = signal('');
+  readonly replayStatus = signal<ReplayStatus | null>(null);
+  private replayPollTimer?: ReturnType<typeof setTimeout>;
   readonly sessions = signal<LiveSession[]>([]); readonly sessionKey = signal('');
   readonly timing = signal<LiveTimingRow[]>([]); readonly weather = signal<LiveWeather[]>([]);
   readonly raceControl = signal<RaceControlMessage[]>([]); readonly intelligence = signal<LiveIntelligence[]>([]);
@@ -248,7 +305,7 @@ export class LiveComponent implements OnDestroy {
   readonly timerIcon = Timer;
   readonly activityIcon = Activity;
 
-  constructor(){this.service.sessions().subscribe({next:sessions=>{this.sessions.set(sessions);this.loading.set(false);if(sessions[0])this.selectSession(sessions[0].sessionKey);},error:()=>{this.error.set('Unable to load live sessions.');this.loading.set(false);}});}
+  constructor(){this.service.sessions().subscribe({next:sessions=>{this.sessions.set(sessions);this.loading.set(false);if(sessions[0])this.selectSession(sessions[0].sessionKey);},error:()=>{this.error.set('Unable to load live sessions.');this.loading.set(false);}});if(this.isAdmin())this.pollReplayStatus();}
   selectSession(key:string){this.sessionKey.set(key);this.streamController?.abort();this.loadSnapshot();this.connect();}
   selectDriver(number:number){this.selectedDriver.set(number);this.loadTelemetry();}
   loadSnapshot(){const key=this.sessionKey();if(!key)return;forkJoin({timing:this.service.timing(key),weather:this.service.weather(key),control:this.service.raceControl(key),intelligence:this.service.intelligence(key),laps:this.service.laps(key),stints:this.service.stints(key),pits:this.service.pitStops(key)}).subscribe({next:data=>{this.timing.set(data.timing);this.weather.set(data.weather);this.raceControl.set(data.control);this.intelligence.set(data.intelligence);this.laps.set(data.laps);this.stints.set(data.stints);this.pitStops.set(data.pits);this.lastUpdated.set(new Date());if(this.selectedDriver()==null&&data.timing[0])this.selectedDriver.set(data.timing[0].driverNumber);this.loadTelemetry();},error:()=>this.error.set('Unable to load this session snapshot.')});}
@@ -259,5 +316,43 @@ export class LiveComponent implements OnDestroy {
   modelLabel(type:string){return MODEL_META[type]?.label ?? type.replaceAll('_',' ');}
   modelIcon(type:string){return (MODEL_META[type]?.icon as typeof Activity) ?? this.activityIcon;}
   modelValue(item:LiveIntelligence){const o=item.output;if(item.modelType==='PIT_WINDOW')return `Lap ${o['windowStart']}–${o['windowEnd']}`;if(item.modelType==='TYRE_DEGRADATION')return `${o['secondsPerLap']} s/lap`;if(item.modelType==='SAFETY_CAR'||item.modelType==='DNF')return `${Math.round(Number(o['probability'])*100)}%`;return String(o['recommended']??o['risk']??'Ready');}
-  ngOnDestroy(){this.streamController?.abort();clearTimeout(this.refreshTimer);clearTimeout(this.reconnectTimer);}
+  formatLapTime(seconds:number|null|undefined):string{
+    if(seconds==null)return '—';
+    const minutes=Math.floor(seconds/60);
+    const remainder=(seconds-minutes*60).toFixed(3).padStart(6,'0');
+    return `${minutes}:${remainder}`;
+  }
+  pitDurationLabel(pit:LivePitStop):string{return pit.stopDuration!=null?'Pit stop':'Pit lane';}
+  pitDurationText(pit:LivePitStop):string{const value=pit.stopDuration??pit.laneDuration;return value==null?'—':`${value.toFixed(1)} s`;}
+  replayStatusLabel(status:ReplayStatus):string{
+    switch(status.state){
+      case 'RUNNING':return 'Importing…';
+      case 'SUCCEEDED':return 'Import complete';
+      case 'FAILED':return 'Import failed';
+      default:return 'No replay yet';
+    }
+  }
+  startReplay(){
+    if(this.replayBusy())return;
+    this.replayError.set('');
+    this.replayBusy.set(true);
+    this.service.startReplay({year:Number(this.replayYear),event:this.replayEvent,session:this.replaySession}).subscribe({
+      next:()=>this.pollReplayStatus(),
+      error:(err)=>{this.replayBusy.set(false);this.replayError.set(err?.error?.message ?? err?.error?.detail ?? 'Unable to start the replay import.');},
+    });
+  }
+  private pollReplayStatus(){
+    clearTimeout(this.replayPollTimer);
+    this.service.replayStatus().subscribe({
+      next:(status)=>{
+        this.replayStatus.set(status);
+        if(status.state==='RUNNING'){this.replayBusy.set(true);this.replayPollTimer=setTimeout(()=>this.pollReplayStatus(),3000);return;}
+        this.replayBusy.set(false);
+        if(status.state==='FAILED')this.replayError.set(status.error||'The replay import failed.');
+        if(status.state==='SUCCEEDED')this.service.sessions().subscribe({next:(sessions)=>this.sessions.set(sessions)});
+      },
+      error:()=>{this.replayBusy.set(false);},
+    });
+  }
+  ngOnDestroy(){this.streamController?.abort();clearTimeout(this.refreshTimer);clearTimeout(this.reconnectTimer);clearTimeout(this.replayPollTimer);}
 }

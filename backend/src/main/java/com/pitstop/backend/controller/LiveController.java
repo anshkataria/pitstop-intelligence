@@ -42,4 +42,7 @@ public class LiveController {
 
     @PostMapping("/replay")
     public JsonNode replay(@RequestBody JsonNode request) { return replayService.start(request); }
+
+    @GetMapping("/replay/status")
+    public JsonNode replayStatus() { return replayService.status(); }
 }

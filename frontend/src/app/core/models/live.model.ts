@@ -87,3 +87,20 @@ export interface LiveEvent {
   sessionKey?: string;
   data?: unknown[];
 }
+
+export interface ReplayRequest {
+  year: number;
+  event: string;
+  session: string;
+}
+
+export interface ReplayStatus {
+  state: 'IDLE' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
+  year?: number;
+  event?: string | number;
+  session?: string;
+  sessionKey?: string | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  error?: string | null;
+}

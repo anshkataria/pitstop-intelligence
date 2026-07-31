@@ -121,8 +121,12 @@ class LiveRepository:
             compound=EXCLUDED.compound,tyre_age_at_start=EXCLUDED.tyre_age_at_start""", values)
 
     def _store_pit(self, session_id: int, rows: list[dict[str, Any]]) -> int:
+        # pit_duration = time stationary in the pit box (OpenF1 reports this directly).
+        # lane_duration = full pit-lane transit time (what FastF1 can derive from
+        # PitInTime/PitOutTime). The two providers don't supply the same measurement,
+        # so each row only fills in whichever one its source actually knows.
         values = [(session_id, r.get("driver_number"), r.get("lap_number"), r.get("date"),
-                   r.get("stop_duration"), r.get("pit_duration"))
+                   r.get("pit_duration"), r.get("lane_duration"))
                   for r in rows if r.get("driver_number") and r.get("lap_number")]
         return self._values("""INSERT INTO live_pit_stops VALUES %s ON CONFLICT(session_id,driver_number,lap_number)
             DO UPDATE SET stopped_at=EXCLUDED.stopped_at,pit_duration=EXCLUDED.pit_duration,

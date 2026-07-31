@@ -53,10 +53,13 @@ class FastF1Replay:
                 "position": _integer(lap.get("Position")),
             })
             if lap.get("PitInTime") is not None and lap.get("PitInTime") == lap.get("PitInTime"):
+                # FastF1 only gives us pit-lane entry/exit timestamps, not the time
+                # spent stationary in the box, so this is lane time, not pit_duration
+                # (OpenF1's box-stationary figure) - keep the two from being conflated.
                 data["pit"].append({
                     "driver_number": number, "lap_number": lap_number,
                     "date": _absolute(session.date, lap.get("PitInTime")),
-                    "pit_duration": _seconds(lap.get("PitOutTime") - lap.get("PitInTime"))
+                    "lane_duration": _seconds(lap.get("PitOutTime") - lap.get("PitInTime"))
                         if lap.get("PitOutTime") is not None and lap.get("PitOutTime") == lap.get("PitOutTime") else None,
                 })
         for driver, frame in session.car_data.items():

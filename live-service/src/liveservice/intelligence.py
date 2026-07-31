@@ -59,6 +59,31 @@ def dnf_probability(driver_number: int, telemetry_dropouts: int, pit_stops: int,
     })
 
 
+def compute_models(features: dict[str, Any]) -> list[ModelOutput]:
+    outputs = [safety_car_probability(
+        int(features["control"].get("incidents") or 0),
+        int(features["control"].get("yellows") or 0),
+        features["wet"],
+    )]
+    maximum_samples = max((int(driver.get("telemetry_samples") or 0) for driver in features["drivers"]), default=0)
+    for driver in features["drivers"]:
+        number = int(driver["driver_number"])
+        laps = [float(value) for value in (driver.get("lap_times") or [])]
+        degradation = tyre_degradation(number, laps, driver.get("compound"))
+        outputs.extend([
+            degradation,
+            pit_window(number, int(driver.get("current_lap") or 0), int(driver.get("tyre_age") or 0), float(degradation.output["secondsPerLap"])),
+            strategy_comparison(number, int(driver.get("current_lap") or 0), float(degradation.output["secondsPerLap"])),
+            dnf_probability(
+                number,
+                max(0, maximum_samples - int(driver.get("telemetry_samples") or 0)) // 100,
+                int(driver.get("pit_stops") or 0),
+                int(driver.get("incident_mentions") or 0),
+            ),
+        ])
+    return outputs
+
+
 def strategy_comparison(driver_number: int, current_lap: int, degradation: float, pit_loss: float = 22.0) -> ModelOutput:
     one_stop_cost = pit_loss + max(0, degradation) * 20
     two_stop_cost = pit_loss * 2 + max(0, degradation) * 7

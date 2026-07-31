@@ -28,6 +28,12 @@ public class LiveReplayService {
                 .retrieve().body(JsonNode.class);
     }
 
+    public JsonNode status() {
+        return client.get().uri("/v1/replay/status")
+                .header(CorrelationIdFilter.HEADER, requestId())
+                .retrieve().body(JsonNode.class);
+    }
+
     private String requestId() {
         return MDC.get(CorrelationIdFilter.MDC_KEY) == null
                 ? "spring-internal" : MDC.get(CorrelationIdFilter.MDC_KEY);

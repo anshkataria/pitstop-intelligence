@@ -14,6 +14,8 @@ import {
   LiveTimingRow,
   LiveWeather,
   RaceControlMessage,
+  ReplayRequest,
+  ReplayStatus,
 } from '../models/live.model';
 
 @Injectable({ providedIn: 'root' })
@@ -33,6 +35,14 @@ export class LiveService {
   pitStops(key: string): Observable<LivePitStop[]> { return this.http.get<LivePitStop[]>(`${this.base}/sessions/${key}/pit-stops`); }
   telemetry(key: string, driver: number): Observable<LiveTelemetryPoint[]> {
     return this.http.get<LiveTelemetryPoint[]>(`${this.base}/sessions/${key}/drivers/${driver}/telemetry?limit=1500`);
+  }
+
+  startReplay(request: ReplayRequest): Observable<{ status: string }> {
+    return this.http.post<{ status: string }>(`${this.base}/replay`, request);
+  }
+
+  replayStatus(): Observable<ReplayStatus> {
+    return this.http.get<ReplayStatus>(`${this.base}/replay/status`);
   }
 
   async stream(key: string, signal: AbortSignal, receive: (event: LiveEvent) => void): Promise<void> {

@@ -51,4 +51,12 @@ class LiveControllerTest {
             .andExpect(status().isForbidden());
         verify(replayService, never()).start(any());
     }
+
+    @Test
+    @WithMockUser
+    void returnsReplayStatusForAnyAuthenticatedUser() throws Exception {
+        when(replayService.status()).thenReturn(objectMapper.readTree("{\"state\":\"SUCCEEDED\"}"));
+        mockMvc.perform(get("/v1/live/replay/status"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.state").value("SUCCEEDED"));
+    }
 }

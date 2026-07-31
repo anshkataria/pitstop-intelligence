@@ -9,13 +9,7 @@ import redis
 from prometheus_client import Counter, Gauge
 
 from liveservice.config import Settings
-from liveservice.intelligence import (
-    dnf_probability,
-    pit_window,
-    safety_car_probability,
-    strategy_comparison,
-    tyre_degradation,
-)
+from liveservice.intelligence import compute_models
 from liveservice.openf1 import OpenF1Client
 from liveservice.repository import LiveRepository
 
@@ -27,7 +21,10 @@ ACTIVE_SESSION = Gauge("pitstop_live_active_session", "Whether a live/recent ses
 
 
 class LiveWorker:
-    SLOW_ENDPOINTS = {"drivers": 120, "stints": 60}
+    # "laps" has no incremental cursor (OpenF1 rows carry no filterable "date"),
+    # so every poll re-fetches the full lap list for the session; throttle it
+    # like the other un-cursored endpoints instead of hitting it every 5s.
+    SLOW_ENDPOINTS = {"drivers": 120, "stints": 60, "laps": 20}
 
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
@@ -62,21 +59,54 @@ class LiveWorker:
         }
 
     def _loop(self) -> None:
+        idle_streak = 0
+        error_streak = 0
         while not self.stop_event.is_set():
             try:
-                self.poll_once()
+                live = self.poll_once()
                 self.last_error = None
+                error_streak = 0
+                idle_streak = 0 if live else idle_streak + 1
             except Exception as exc:
                 self.last_error = f"{type(exc).__name__}: {exc}"
                 ERRORS.labels("poll").inc()
                 logger.exception("Live provider poll failed")
-            self.stop_event.wait(self.settings.poll_seconds)
+                error_streak += 1
+                idle_streak = 0
+            self.stop_event.wait(self._next_wait(idle_streak, error_streak))
 
-    def poll_once(self) -> None:
+    def _next_wait(self, idle_streak: int, error_streak: int) -> float:
+        base = self.settings.poll_seconds
+        if error_streak:
+            # Back off exponentially so a broken/rate-limited provider doesn't get
+            # hammered every poll interval; caps at 5 minutes between attempts.
+            return min(300.0, base * (2 ** min(error_streak, 6)))
+        if idle_streak:
+            # No live session: check back less often the longer it stays idle,
+            # capped at 2 minutes, instead of polling every session_key=latest.
+            return min(120.0, base * min(idle_streak, 12))
+        return base
+
+    def _is_live(self, session: dict[str, Any]) -> bool:
+        now = datetime.now(timezone.utc)
+        start = _parse_provider_timestamp(session.get("date_start"))
+        if start is None or now < start:
+            return False
+        end = _parse_provider_timestamp(session.get("date_end"))
+        if end is not None:
+            return now <= end
+        # No known end time yet: only treat it as live within a bounded window
+        # after the start, so a session OpenF1 never closes out doesn't get
+        # polled as "live" indefinitely.
+        return now - start <= timedelta(hours=4)
+
+    def poll_once(self) -> bool:
         session = self.client.latest_session()
-        if not session:
+        if not session or not self._is_live(session):
             ACTIVE_SESSION.set(0)
-            return
+            self.session_key = None
+            self.session_id = None
+            return False
         next_session_key = str(session["session_key"])
         if next_session_key != self.session_key:
             self.cursors.clear()
@@ -106,37 +136,31 @@ class LiveWorker:
             self._run_models()
             self.last_model_run = now
         LAST_UPDATE.set(datetime.now(timezone.utc).timestamp())
+        return True
 
     def _run_models(self) -> None:
         if self.session_id is None:
             return
         features = self.repository.model_features(self.session_id)
-        outputs = [safety_car_probability(
-            int(features["control"].get("incidents") or 0),
-            int(features["control"].get("yellows") or 0),
-            features["wet"],
-        )]
-        maximum_samples = max((int(driver.get("telemetry_samples") or 0) for driver in features["drivers"]), default=0)
-        for driver in features["drivers"]:
-            number = int(driver["driver_number"])
-            laps = [float(value) for value in (driver.get("lap_times") or [])]
-            degradation = tyre_degradation(number, laps, driver.get("compound"))
-            outputs.extend([
-                degradation,
-                pit_window(number, int(driver.get("current_lap") or 0), int(driver.get("tyre_age") or 0), float(degradation.output["secondsPerLap"])),
-                strategy_comparison(number, int(driver.get("current_lap") or 0), float(degradation.output["secondsPerLap"])),
-                dnf_probability(
-                    number,
-                    max(0, maximum_samples - int(driver.get("telemetry_samples") or 0)) // 100,
-                    int(driver.get("pit_stops") or 0),
-                    int(driver.get("incident_mentions") or 0),
-                ),
-            ])
+        outputs = compute_models(features)
         self.repository.save_models(self.session_id, outputs)
         self._publish("intelligence", [output.__dict__ for output in outputs])
 
     def _publish(self, event: str, rows: list[dict[str, Any]]) -> None:
         if self.session_key is None:
             return
-        message = json.dumps({"event": event, "sessionKey": self.session_key, "data": rows}, default=str)
-        self.redis.publish(f"pitstop:live:{self.session_key}", message)
+        publish_live_event(self.redis, self.session_key, event, rows)
+
+
+def publish_live_event(redis_client: "redis.Redis", session_key: str, event: str, rows: list[dict[str, Any]]) -> None:
+    message = json.dumps({"event": event, "sessionKey": session_key, "data": rows}, default=str)
+    redis_client.publish(f"pitstop:live:{session_key}", message)
+
+
+def _parse_provider_timestamp(value: Any) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
