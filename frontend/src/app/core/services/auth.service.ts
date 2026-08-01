@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { finalize, Observable, shareReplay, tap } from 'rxjs';
 import {
   AuthSession,
   AuthUser,
@@ -18,6 +18,7 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = inject(API_URL);
   private readonly sessionState = signal<AuthSession | null>(this.readSession());
+  private refreshInFlight$: Observable<AuthSession> | null = null;
   readonly session = this.sessionState.asReadonly();
   readonly user = computed(() => this.sessionState()?.user ?? null);
   readonly isAuthenticated = computed(() => Boolean(this.sessionState()?.accessToken));
@@ -47,11 +48,17 @@ export class AuthService {
   }
 
   refresh(): Observable<AuthSession> {
+    if (this.refreshInFlight$) return this.refreshInFlight$;
     const current = this.sessionState();
     if (!current) throw new Error('No session is available to refresh');
     const remember = this.isRemembered();
-    return this.http.post<AuthSession>(`${this.apiUrl}/v1/auth/refresh`, { refreshToken: current.refreshToken })
-      .pipe(tap((session) => this.storeSession(session, remember)));
+    this.refreshInFlight$ = this.http.post<AuthSession>(`${this.apiUrl}/v1/auth/refresh`, { refreshToken: current.refreshToken })
+      .pipe(
+        tap((session) => this.storeSession(session, remember)),
+        finalize(() => { this.refreshInFlight$ = null; }),
+        shareReplay(1),
+      );
+    return this.refreshInFlight$;
   }
 
   logout(): void {

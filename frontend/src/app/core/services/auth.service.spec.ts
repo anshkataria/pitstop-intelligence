@@ -49,4 +49,25 @@ describe('AuthService', () => {
     expect(request.request.body).toEqual({ refreshToken: 'refresh' });
     request.flush(null);
   });
+
+  it('shares a single in-flight refresh across concurrent callers', () => {
+    service.login({ email: 'engineer@pitstop.test', password: 'racepace123' }, false).subscribe();
+    http.expectOne('http://localhost:8080/api/v1/auth/login').flush(session);
+
+    const results: AuthSession[] = [];
+    service.refresh().subscribe((s) => results.push(s));
+    service.refresh().subscribe((s) => results.push(s));
+
+    // Only one HTTP call should be made even though refresh() was called twice
+    // concurrently; http.expectOne throws if a second request was issued.
+    const rotated: AuthSession = { ...session, accessToken: 'access-2', refreshToken: 'refresh-2' };
+    http.expectOne('http://localhost:8080/api/v1/auth/refresh').flush(rotated);
+
+    expect(results).toEqual([rotated, rotated]);
+    expect(service.accessToken()).toBe('access-2');
+
+    // A subsequent refresh() call should issue a fresh request, not reuse the stale one.
+    service.refresh().subscribe();
+    http.expectOne('http://localhost:8080/api/v1/auth/refresh').flush(rotated);
+  });
 });
