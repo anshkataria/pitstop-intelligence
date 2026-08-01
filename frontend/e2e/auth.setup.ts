@@ -9,6 +9,6 @@ setup('authenticate test account', async ({ page }) => {
   await page.getByRole('button', { name: 'Continue' }).click();
 
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByRole('heading', { name: 'Australian Grand Prix' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Australian Grand Prix' })).toBeVisible();
   await page.context().storageState({ path: 'playwright/.auth/user.json' });
 });

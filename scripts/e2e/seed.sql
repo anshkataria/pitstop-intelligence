@@ -33,6 +33,18 @@ ON CONFLICT (season_year, round) DO UPDATE SET
     race_date = EXCLUDED.race_date,
     updated_at = NOW();
 
+-- No results are seeded for this race: it stays "upcoming" relative to today so the
+-- predictions builder has a race to select, and its provisional grid falls back to the
+-- most recent completed race above.
+INSERT INTO races (season_year, round, name, circuit_name, country, race_date)
+VALUES (2024, 2, 'Japanese Grand Prix', 'Suzuka Circuit', 'Japan', CURRENT_DATE + INTERVAL '30 days')
+ON CONFLICT (season_year, round) DO UPDATE SET
+    name = EXCLUDED.name,
+    circuit_name = EXCLUDED.circuit_name,
+    country = EXCLUDED.country,
+    race_date = EXCLUDED.race_date,
+    updated_at = NOW();
+
 INSERT INTO race_results
     (race_id, driver_id, constructor_id, grid_position, finish_position, points, status)
 SELECT

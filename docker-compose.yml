@@ -13,7 +13,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget -q -O - http://localhost/healthz >/dev/null || exit 1",
+          "wget -q -O - http://127.0.0.1/healthz >/dev/null || exit 1",
         ]
       interval: 10s
       timeout: 3s

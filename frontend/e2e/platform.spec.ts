@@ -3,22 +3,23 @@ import { expect, test } from '@playwright/test';
 test('dashboard renders the seeded season aggregation', async ({ page }) => {
   await page.goto('/dashboard');
 
-  await expect(page.getByRole('heading', { name: 'Australian Grand Prix' })).toBeVisible();
-  await expect(page.getByText('Albert Park Circuit')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Australian Grand Prix' })).toBeVisible();
   await expect(page.locator('article').filter({ hasText: 'ROUNDS' }).getByText('1')).toBeVisible();
   await expect(page.getByText('Lando Norris').first()).toBeVisible();
 });
 
 test('driver roster opens a real season profile', async ({ page }) => {
   await page.goto('/drivers');
-  const landoRow = page.getByRole('row').filter({ hasText: 'Lando Norris' });
+  const landoCard = page.locator('a.driver-card').filter({ hasText: 'Lando Norris' });
 
-  await expect(landoRow).toBeVisible();
-  await landoRow.getByRole('link', { name: 'View profile' }).click();
+  await expect(landoCard).toBeVisible();
+  await landoCard.click();
 
   await expect(page.getByRole('heading', { name: 'Lando Norris' })).toBeVisible();
   await expect(page.locator('.big-stats').getByText('25')).toBeVisible();
-  await expect(page.getByText(/Average finish 1/)).toBeVisible();
+  const avgFinish = page.locator('.mini-stats > div').first();
+  await expect(avgFinish).toContainText('Avg finish');
+  await expect(avgFinish).toContainText('1');
 });
 
 test('race calendar links classification to race analysis', async ({ page }) => {

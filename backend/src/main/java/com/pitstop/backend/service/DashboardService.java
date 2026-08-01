@@ -39,7 +39,7 @@ public class DashboardService {
             .race(raceMapper.toDto(latestRace))
             .classification(latestClassification.stream().map(raceResultService::toDto).toList())
             .driverCount(seasonResults.stream().map(result -> result.getDriver().getId()).distinct().count())
-            .raceCount(raceRepository.findBySeasonYearOrderByRoundAsc(year).size())
+            .raceCount(seasonResults.stream().map(result -> result.getRace().getId()).distinct().count())
             .resultCount(seasonResults.size())
             .build();
     }
