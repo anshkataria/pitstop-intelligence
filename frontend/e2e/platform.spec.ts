@@ -27,7 +27,7 @@ test('race calendar links classification to race analysis', async ({ page }) => 
   await page.getByRole('link', { name: /Australian Grand Prix/ }).click();
 
   await expect(page.getByRole('heading', { name: 'Australian Grand Prix' })).toBeVisible();
-  await expect(page.getByText('Lando Norris')).toBeVisible();
+  await expect(page.getByText('Lando Norris').first()).toBeVisible();
   await page.getByRole('link', { name: 'Open analysis' }).click();
 
   await expect(page.getByRole('heading', { name: 'Race Review' })).toBeVisible();
