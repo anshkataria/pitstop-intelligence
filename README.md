@@ -34,15 +34,15 @@ dev/prod/VPS, and CI with CodeQL security scanning.
 
 ## ✨ Features
 
-| Page | What it does |
-|---|---|
-| **Overview** | Season standings, championship gaps, and a points-progression chart for the top 5 drivers |
-| **Races** | Full Grand Prix calendar for any season, with round, circuit, country and winner |
-| **Race Analysis** | Grid-to-finish scatter plot, biggest movers, and full classification for any race |
-| **Live Intelligence** | Live/replay timing tower, track conditions and telemetry streamed from OpenF1 & FastF1 |
-| **Predictions** | Set a starting grid and get an ML-forecasted finishing order (XGBoost, tracked with MLflow) |
-| **Drivers** | Searchable driver roster ranked by career wins and podiums |
-| **Teams** | Constructor standings with points, wins and podiums per season |
+| Page                  | What it does                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------- |
+| **Overview**          | Season standings, championship gaps, and a points-progression chart for the top 5 drivers   |
+| **Races**             | Full Grand Prix calendar for any season, with round, circuit, country and winner            |
+| **Race Analysis**     | Grid-to-finish scatter plot, biggest movers, and full classification for any race           |
+| **Live Intelligence** | Live/replay timing tower, track conditions and telemetry streamed from OpenF1 & FastF1      |
+| **Predictions**       | Set a starting grid and get an ML-forecasted finishing order (XGBoost, tracked with MLflow) |
+| **Drivers**           | Searchable driver roster ranked by career wins and podiums                                  |
+| **Teams**             | Constructor standings with points, wins and podiums per season                              |
 
 ## 📸 Screenshots
 
@@ -114,16 +114,16 @@ calls with a private service token, so the browser never talks to Python directl
 
 ## 🧰 Tech stack
 
-| Layer | Stack |
-|---|---|
-| **Frontend** | Angular 21 (standalone components), NgRx (store/effects/entity), D3.js, Lucide icons |
-| **Backend API** | Java 21, Spring Boot 3.5, Spring Security (JWT), Spring Data JPA, Flyway, Redis cache |
-| **ML service** | Python, FastAPI, XGBoost, scikit-learn, pandas, MLflow |
-| **Live service** | Python, FastAPI, OpenF1 API, FastF1 (historical telemetry replay), Redis pub/sub, SSE |
-| **Ingestion** | Python, Ergast/Jolpica API, APScheduler-style cron worker |
-| **Data** | PostgreSQL 16, Redis 7 |
-| **Observability** | Prometheus, Grafana |
-| **Infra** | Docker Compose (dev / prod / VPS), Caddy (TLS reverse proxy), GitHub Actions CI + CodeQL |
+| Layer             | Stack                                                                                    |
+| ----------------- | ---------------------------------------------------------------------------------------- |
+| **Frontend**      | Angular 21 (standalone components), NgRx (store/effects/entity), D3.js, Lucide icons     |
+| **Backend API**   | Java 21, Spring Boot 3.5, Spring Security (JWT), Spring Data JPA, Flyway, Redis cache    |
+| **ML service**    | Python, FastAPI, XGBoost, scikit-learn, pandas, MLflow                                   |
+| **Live service**  | Python, FastAPI, OpenF1 API, FastF1 (historical telemetry replay), Redis pub/sub, SSE    |
+| **Ingestion**     | Python, Ergast/Jolpica API, APScheduler-style cron worker                                |
+| **Data**          | PostgreSQL 16, Redis 7                                                                   |
+| **Observability** | Prometheus, Grafana                                                                      |
+| **Infra**         | Docker Compose (dev / prod / VPS), Caddy (TLS reverse proxy), GitHub Actions CI + CodeQL |
 
 ## 🚀 Getting started
 
@@ -212,6 +212,10 @@ resource limits, restart policies, a Caddy TLS gateway and pinned image tags pub
 by the `release-images.yml` workflow to GHCR. See
 [`docs/docker-and-deployment.md`](docs/docker-and-deployment.md) for the full deployment
 guide, including database backup/restore scripts and systemd timers.
+
+## Note
+
+Generative AI tools were used to guide the project.
 
 ## License
 
